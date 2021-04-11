@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Your custom styles go here */
+
+html {
+  font-family: "Inter", sans-serif;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+/* COLOR THEME */
+
+.theme-fog {
+  background-color: #687864;
+}
+
+.theme-blue-night {
+  background-color: #31708e;
+}
+
+.theme-blue-dusk {
+  background-color: #5085a5;
+}
+
+.theme-blue-pale {
+  background-color: #8fc1e3;
+}
+
+.theme-neutral {
+  background-color: #f7f9fb;
+}
+
+.brand {
+  font-family: "Merriweather", serif;
+}
+
+/* */
+
+@media all and (max-width: 1028px) {
+  .bom-quantity {
+    width: 100%;
+  }
+  .bom-note {
+    width: 100%;
+  }
+}
+
+@media (min-width: 1029px) {
+  .bom-quantity {
+    width: 120px;
+  }
+  .bom-note {
+    width: 120px;
+  }
+}
+
+@media all and (max-width: 640px) {
+  .modal-quantity {
+    width: 100%;
+  }
+}
+
+@media (min-width: 641px) {
+  .modal-quantity {
+    width: 140px;
+  }
+}

@@ -1,0 +1,12 @@
+[2021-04-10 18:41:06,911: INFO/MainProcess] Connected to redis://cache:6379/0
+[2021-04-10 18:41:06,927: INFO/MainProcess] mingle: searching for neighbors
+[2021-04-10 18:41:07,965: INFO/MainProcess] mingle: all alone
+[2021-04-10 18:41:07,991: INFO/MainProcess] celery@6bb24d57153e ready.
+[2021-04-11 00:06:25,692: INFO/MainProcess] Connected to redis://cache:6379/0
+[2021-04-11 00:06:25,735: INFO/MainProcess] mingle: searching for neighbors
+[2021-04-11 00:06:26,784: INFO/MainProcess] mingle: all alone
+[2021-04-11 00:06:26,812: INFO/MainProcess] celery@f94f69a73d69 ready.
+[2021-04-11 03:30:39,648: INFO/MainProcess] Connected to redis://cache:6379/0
+[2021-04-11 03:30:39,678: INFO/MainProcess] mingle: searching for neighbors
+[2021-04-11 03:30:40,729: INFO/MainProcess] mingle: all alone
+[2021-04-11 03:30:40,761: INFO/MainProcess] celery@a92d11b87875 ready.

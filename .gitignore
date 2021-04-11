@@ -1,0 +1,30 @@
+# environment variables
+.env.dev
+.env.dev.db
+.env.prod
+.env.prod.db
+
+# virtualenv
+.venv
+
+# planning & documentation
+docs/*
+
+# development tooling
+db.sqlite3
+up.sh
+down.sh
+down-v.sh
+logs.sh
+up-prod.sh
+down-prod.sh
+down-v-prod.sh
+logs-prod.sh
+jstools
+scripts
+
+# temporary files
+*.pyc 
+
+# macOS
+.DS_Store

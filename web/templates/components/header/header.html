@@ -1,0 +1,42 @@
+{% load static %}
+
+<div class="z-50">
+  <nav class="bg-white shadow shadow-md">
+    <div class="px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center">
+
+          {% include "components/header/header_logo.html" %}
+
+          {% include "components/header/header_menu_links.html" %}
+
+        </div>
+
+        {% if user.is_authenticated %}
+        <div class="hidden md:block">
+          <div class="ml-4 flex items-center md:ml-6">
+
+            {% include "components/header/header_notifications.html" %}
+
+            {% include "components/header/header_settings.html" %}
+
+            {% include "components/header/header_profile_dropdown.html" %}
+
+            {% include "components/header/header_logout.html" %}
+
+          </div>
+        </div>
+
+        <div class="-mr-2 flex md:hidden">
+
+          {% include "components/header/header_collapsed_menu_button.html" %}
+
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% include "components/header/header_collapsed_menu_dropdown.html" %}
+
+  </nav>
+</div>

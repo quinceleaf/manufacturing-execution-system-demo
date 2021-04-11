@@ -1,0 +1,21 @@
+{% load static %}
+
+<!-- START LOGO -->
+<div class="flex-shrink-0">
+  <div class="flex flex-row items-center">
+    <div>
+      <a href="{% url 'apps.common:index' %}">
+        <img
+          class="h-10"
+          src="{% static 'img/logo.png' %}"
+          height="70px"
+          alt="CaterChain.io"
+        />
+      </a>
+    </div>
+    <div class="brand text-xl text-steel-600 md:inline hidden">
+      <span class="font-bold">CaterChain</span>
+    </div>
+  </div>
+</div>
+<!-- END LOGO -->
