@@ -1,4 +1,5 @@
 # environment variables
+.env
 .env.dev
 .env.dev.db
 .env.prod
@@ -8,7 +9,12 @@
 .venv
 
 # planning & documentation
-docs/*
+docs
+
+# logs
+logs
+celerybeat-schedule
+
 
 # development tooling
 db.sqlite3
@@ -20,11 +26,23 @@ up-prod.sh
 down-prod.sh
 down-v-prod.sh
 logs-prod.sh
+db.sh
+
 jstools
 scripts
+
+auth-github-packages.sh
+build-image.sh
+push-image-to-docker.sh
+set-do-token.sh
+write-env-to-github-secrets.py
+
+staticfiles
 
 # temporary files
 *.pyc 
 
 # macOS
 .DS_Store
+web/logs/celery.log
+web/logs/celery.log

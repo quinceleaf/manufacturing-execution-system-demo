@@ -1,2 +1,4 @@
 # all html files
 *.html
+*.yml
+Dockerfile.*

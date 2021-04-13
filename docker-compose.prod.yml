@@ -1,59 +1,65 @@
 version: "3.7"
 
 services:
+  cache:
+    restart: always
+    image: redis:latest
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
   nginx:
     restart: always
-    build: ./nginx
+    image: "${NGINX_IMAGE}"
     volumes:
       - static_volume:/home/app/web/staticfiles
       - media_volume:/home/app/web/mediafiles
+      - /etc/letsencrypt:/etc/nginx/certs
     ports:
-      - 1337:80
+      - 80:80
+      - 443:443
     depends_on:
       - web
   web:
     restart: always
-    build:
-      context: ./web
-      dockerfile: Dockerfile.prod
-    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
+    image: "${WEB_IMAGE}"
+    command: /home/app/web/.venv/bin/gunicorn config.wsgi:application --bind 0.0.0.0:8000 --worker-tmp-dir /dev/shm --workers=2 --threads=4 --worker-class=gthread
     volumes:
       - static_volume:/home/app/web/staticfiles
       - media_volume:/home/app/web/mediafiles
     expose:
       - 8000
     env_file:
-      - ./.env.prod
+      - .env
     depends_on:
-      - db
       - cache
-  db:
+  queue-worker:
     restart: always
-    image: postgres:12.0-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
+    image: "${WEB_IMAGE}"
+    command: /home/app/web/.venv/bin/celery -A config worker --loglevel INFO --logfile logs/celery-worker.log
     env_file:
-      - ./.env.prod.db
-  cache:
-    restart: always
-    image: redis:latest
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-  queue:
-    restart: always
-    build: ./web
-    command: celery --app config worker --loglevel=INFO --logfile=logs/celery.log
-    volumes:
-      - ./web:/home/app/web
-    env_file:
-      - ./.env.prod
+      - .env
     depends_on:
-      - web
+      - cache
+  queue-scheduler:
+    restart: always
+    image: "${WEB_IMAGE}"
+    command: /home/app/web/.venv/bin/celery -A config beat --loglevel INFO --logfile logs/celery-beat.log --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    env_file:
+      - .env
+    depends_on:
+      - cache
+  queue-dashboard:
+    restart: always
+    image: "${WEB_IMAGE}"
+    command: /home/app/web/.venv/bin/celery -A config worker --loglevel INFO --logfile logs/celery-worker.log
+    ports:
+      - 5555:5555
+    env_file:
+      - .env
+    depends_on:
       - cache
 volumes:
-  postgres_data:
   redis_data:
   static_volume:
   media_volume:

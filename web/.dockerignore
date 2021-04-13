@@ -1,0 +1,5 @@
+venv
+.venv
+.git
+staticfiles
+entrypoint.prod.sh

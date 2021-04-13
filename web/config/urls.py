@@ -11,7 +11,7 @@ import debug_toolbar
 urlpatterns = [
     # path("admin/doc/", include("django.contrib.admindocs.urls")),
     path("admin/", admin.site.urls),
-    # path("auth/", include("django.contrib.auth.urls")),
+    path("auth/", include("django.contrib.auth.urls")),
     path("api/v1/", include("apps.api.urls", namespace="api")),
     # path("select2/", include("django_select2.urls")),
     #

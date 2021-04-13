@@ -10,7 +10,6 @@ Django = "^3.2"
 psycopg2-binary = "^2.8.6"
 gunicorn = "^20.1.0"
 django-redis = "^4.12.1"
-celery = "^5.0.5"
 django-admin-autocomplete-filter = "^0.6.1"
 django-filter = "^2.4.0"
 django-formtools = "^2.2"
@@ -30,6 +29,10 @@ Pillow = "^8.1.2"
 python-dotenv = "^0.15.0"
 python-ulid = "^1.0.2"
 pytz = "^2021.1"
+celery = "5.0.5"
+django-debug-toolbar = "^3.2"
+coverage = "^5.5"
+django-celery-beat = "^2.2.0"
 
 
 
@@ -38,10 +41,10 @@ black = "^20.8b1"
 Faker = "^6.6.0"
 factory-boy = "^3.2.0"
 flake8 = "^3.8.4"
-django-debug-toolbar = "^3.2"
-coverage = "^5.5"
 model-bakery = "^1.2.1"
 selenium = "^3.141.0"
+PyNaCl = "^1.4.0"
+requests = "^2.25.1"
 
 
 [build-system]

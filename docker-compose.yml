@@ -4,16 +4,17 @@ services:
   web:
     restart: always
     build: ./web
+    image: application
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./web/:/usr/src/app/
+      - ./web:/home/web/app
     ports:
       - 8000:8000
     env_file:
       - ./.env.dev
     depends_on:
-      - db
       - cache
+      - db
   db:
     restart: always
     image: postgres:12.0-alpine
@@ -25,21 +26,47 @@ services:
     restart: always
     image: redis:latest
     ports:
-      - "6379:6379"
+      - 6379:6379
     volumes:
       - redis_data:/data
-  queue:
+  queue-worker:
     restart: always
     build: ./web
-    command: celery --app config worker --loglevel=INFO --logfile=logs/celery.log
-    volumes:
-      - ./web:/usr/src/app
+    image: queue_celery_worker
+    command: celery -A config worker --loglevel INFO --logfile logs/celery-worker.log
+    # volumes:
+    #   - ./web:/home/web/app
     env_file:
       - ./.env.dev
     depends_on:
-      - web
       - cache
-
+      - db
+  queue-scheduler:
+    restart: always
+    build: ./web
+    image: queue_celery_beat
+    command: celery -A config beat --loglevel INFO --logfile logs/celery-beat.log --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    # volumes:
+    #   - ./web:/home/web/app
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - cache
+      - db
+  queue-dashboard:
+    restart: always
+    build: ./web
+    image: queue_celery_dashboard
+    command: celery -A config worker --loglevel INFO --logfile logs/celery-worker.log
+    # volumes:
+    #   - ./web:/home/web/app
+    ports:
+      - 5555:5555
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - cache
+      - db
 volumes:
   postgres_data:
   redis_data:

@@ -1,10 +1,21 @@
+# --- DJANGO IMPORTS
 from django.contrib.messages import constants as messages
 from django.core.management.utils import get_random_secret_key
 
+
+# --- PYTHON UTILITY IMPORTS
 import os
 from pathlib import Path
 
+
+# --- THIRD-PARTY IMPORTS
+from celery.schedules import crontab
 from dotenv import load_dotenv
+
+
+# ––– APPLICATION IMPORTS
+import apps.common.tasks
+
 
 load_dotenv()
 
@@ -13,9 +24,12 @@ load_dotenv()
 # ENV
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
-DEBUG = os.getenv("DEBUG", 1) == 1
+DEBUG = os.getenv("DEBUG", 0)  # == 1
 SECRET_KEY = os.getenv("SECRET_KEY", get_random_secret_key())
-ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
+
+print("DEBUG:", DEBUG)
+print("ENVIRONMENT:", ENVIRONMENT)
 
 
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -43,8 +57,6 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "admin_auto_filters",
-    "coverage",
-    "debug_toolbar",
     "django_filters",
     "django_fsm_log",
     "django_select2",
@@ -53,12 +65,16 @@ THIRD_PARTY_APPS = [
     "simple_history",
     "widget_tweaks",
     "treebeard",
+    "debug_toolbar",
+    "coverage",
+    "django_celery_beat",
 ]
 
 PROJECT_APPS = [
     "apps.common",
     "apps.users",
     "apps.api",
+    "apps.masterdata",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
@@ -121,6 +137,19 @@ DATABASES = {
         "PORT": os.environ.get("SQL_PORT", "5432"),
     }
 }
+
+# if DEBUG == False:
+#     DATABASES["default"]["OPTIONS"] = (
+#         {
+#             "sslmode": "require",
+#             # 'sslcert': '/path/to/file',
+#             # 'sslkey': '/path/to/file',
+#             # 'sslrootcert': '/path/to/file',
+#         },
+#     )
+
+print("DATABASES:", DATABASES)
+
 
 CACHES = {
     "default": {
@@ -222,6 +251,14 @@ MESSAGE_TAGS = {
 # Celery
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = os.environ.get("CELERY_BROKER", "redis://localhost:6379/0")
+
+CELERY_BEAT_SCHEDULE = {
+    "sample_task": {
+        "task": "apps.common.tasks.random_generate",
+        "schedule": crontab(minute="*/1"),
+    },
+}
+
 
 # Django Import-Export
 IMPORT_EXPORT_USE_TRANSACTIONS = True
