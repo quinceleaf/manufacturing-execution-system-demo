@@ -1,0 +1,228 @@
+{% load widget_tweaks %}
+
+  {% if field.field.widget.input_type == 'text' %}
+    <div class="mb-5">
+      <label for="{{field.id}}" class="input-label">
+        {{field.label_tag}}
+        {% if not field.field.required %}
+        <em>– optional</em>
+        {% endif %}
+      </label>
+
+      {% if form.is_bound %}
+        {% if field.errors %}
+        <div class="mt-1 relative rounded-md">
+          {% render_field field class="input-field border-red-300 bg-red-50" %}
+        </div>
+        <div class="mt-2 input-errors">
+          {% for error in field.errors %}
+            {{ error }}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="mt-1 relative rounded-md">
+          {% render_field field class="input-field" %}
+        </div>
+        {% endif %}
+      {% else %}
+      <div class="mt-1 relative rounded-md">
+        {% render_field field class="input-field" %}
+      </div>
+      {% endif %}
+
+      {% if field.help_text %}
+        <small class="md:mt-1 mt-2 text-xs text-gray-500">{{ field.help_text|safe }}</small>
+      {% endif %}
+    </div>
+
+
+  {% elif field.field.widget.input_type == 'file' %}
+    <div class="mb-5">
+      <label for="{{field.id}}" class="input-label">
+        {{field.label_tag}}
+        {% if not field.field.required %}
+        <em>– optional</em>
+        {% endif %}
+      </label>
+
+      {% if form.is_bound %}
+        {% if field.errors %}
+        <div class="mt-1 relative rounded-md">
+          {% render_field field class="input-field border-red-300 bg-red-50" %}
+        </div>
+        <div class="mt-2 input-errors">
+          {% for error in field.errors %}
+            {{ error }}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="mt-1 relative rounded-md">
+          {% render_field field class="input-field" %}
+        </div>
+        {% endif %}
+      {% else %}
+      <div class="mt-1 relative rounded-md">
+        {% render_field field class="input-field" %}
+      </div>
+      {% endif %}
+
+      {% if field.help_text %}
+        <small class="md:mt-1 mt-2 text-xs text-gray-500">{{ field.help_text|safe }}</small>
+      {% endif %}
+    </div>
+
+
+  {% elif field.field.widget.input_type == 'number' %}
+    <div class="mb-5">
+      <label for="{{field.id}}" class="input-label">
+        {{field.label_tag}}
+        {% if not field.field.required %}
+        <em>– optional</em>
+        {% endif %}
+      </label>
+
+      {% if form.is_bound %}
+        {% if field.errors %}
+        <div class="mt-1 relative rounded-md">
+          {% render_field field class="input-field text-right border-red-300 bg-red-50" %}
+        </div>
+        <div class="mt-2 input-errors">
+          {% for error in field.errors %}
+            {{ error }}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="mt-1 relative rounded-md">
+          {% render_field field class="input-field text-right" %}
+        </div>
+        {% endif %}
+      {% else %}
+      <div class="mt-1 relative rounded-md">
+        {% render_field field class="input-field text-right" %}
+      </div>
+      {% endif %}
+
+      {% if field.help_text %}
+        <small class="md:mt-1 mt-2 text-xs text-gray-500">{{ field.help_text|safe }}</small>
+      {% endif %}
+    </div>
+
+
+  {% elif field.field.widget.input_type == 'select' %}
+    <div class="mb-5">
+      <label for="{{field.id}}" class="input-label">
+        {{field.label_tag}}
+        {% if not field.field.required %}
+        <em>– optional</em>
+        {% endif %}
+      </label>
+
+      {% if form.is_bound %}
+        {% if field.errors %}
+        <div class="mt-1 relative rounded-md">
+          {% render_field field class="django-select2 border-red-300 bg-red-50" placeholder="Select..." %}
+        </div>
+        <div class="mt-2 input-errors">
+          {% for error in field.errors %}
+            {{ error }}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="mt-1 relative rounded-md">
+          {% render_field field class="django-select2" placeholder="Select..." %}
+        </div>
+        {% endif %}
+      {% else %}
+      <div class="mt-1 relative rounded-md">
+        {% render_field field class="django-select2" placeholder="Select..." %}
+      </div>
+      {% endif %}
+
+      {% if field.help_text %}
+        <small class="md:mt-1 mt-2 text-xs text-gray-500">{{ field.help_text|safe }}</small>
+      {% endif %}
+    </div>
+
+  {% elif field.field.widget.input_type == 'checkbox' %}
+    <div class="mb-5">
+      {% if form.is_bound %}
+        {% if field.errors %}
+          <div class="mt-1 relative">
+          {% render_field field class="input-checkbox border-red-300 bg-red-50" %}
+          <label for="{{field.id}}" class="input-label ml-1">
+              {{ field.label_tag }}
+          </label>
+          {% for error in field.errors %}
+            <div class="mt-1 input-errors">
+              {{ error }}
+            </div>
+          {% endfor %}
+          </div>
+        {% else %}
+          <div class="mt-1 relative">
+            {% render_field field class="input-checkbox" %}
+            <label for="{{field.id}}" class="input-label ml-1">
+                {{ field.label_tag }}
+            </label>
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="mt-1 relative">
+            {% render_field field class="input-checkbox" %}
+            <label for="{{field.id}}" class="input-label ml-1">
+                {{ field.label_tag }}
+            </label>
+        </div>
+      {% endif %}
+
+      {% if field.help_text %}
+        <small class="md:mt-1 mt-2 text-xs text-gray-500">{{ field.help_text|safe }}</small>
+      {% endif %}
+    </div>
+
+  {% else %}
+    <div class="mb-5">
+      <label for="{{field.id}}" class="input-label">
+        {{field.label_tag}}
+        {% if not field.field.required %}
+        <em>– optional</em>
+        {% endif %}
+      </label>
+
+      {% if form.is_bound %}
+        {% if field.errors %}
+        <div class="mt-1 relative rounded-md">
+          {% render_field field class="input-field border-red-300 bg-red-50" %}
+        </div>
+        <div class="mt-2 input-errors">
+          {% for error in field.errors %}
+            {{ error }}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="mt-1 relative rounded-md">
+          {% render_field field class="input-field" %}
+        </div>
+        {% endif %}
+      {% else %}
+      <div class="mt-1 relative rounded-md">
+        {% render_field field class="input-field" %}
+      </div>
+      {% endif %}
+
+      {% if field.help_text %}
+        <small class="md:mt-1 mt-2 text-xs text-gray-500">{{ field.help_text|safe }}</small>
+      {% endif %}
+    </div>
+
+  {% endif %}
+
+
+
+
+
+
+
+
+  
+  

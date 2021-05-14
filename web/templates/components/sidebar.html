@@ -1,6 +1,6 @@
 {% load static %}
 
-<div class="flex-0 w-12 z-30" x-data="setup()" >
+<div class="flex-0 w-12 Xz-30" x-data="setup()" >
 
     <!-- START SIDEBAR (SETTINGS) -->
     <div id="settings" class="hidden" data-toggle-sidebar-pin-url="{% url 'common:settings_ui_toggle_sidebar_pin' %}" data-is-pinned="{{request.session.pin_sidebar}}"></div>
@@ -29,7 +29,7 @@
     <!-- START BUTTONS -->
     <div class="flex flex-row justify-between"> 
         <!-- START SIDEBAR (SHOW/HIDE TOGGLE BUTTON) -->
-        <div class="flex mt-16 z-30" :class="{'pl-4': isSidebarOpen}">
+        <div class="flex mt-16 Xz-30" :class="{'pl-4': isSidebarOpen}">
             <button
             class="p-2 text-steel-400 hover:text-white focus:outline-none"
             style="transition: all 0.15s ease" type="button" x-on:click="toggleSidebarMenu">
@@ -43,7 +43,7 @@
         <!-- END SIDEBAR (SHOW/HIDE TOGGLE BUTTON) -->
 
         <!-- START SIDEBAR (PIN TOGGLE BUTTON) -->
-        <div class="flex mt-16 z-30" :class="{'pl-4': isSidebarOpen}">
+        <div class="flex mt-16 Xz-30" :class="{'pl-4': isSidebarOpen}">
             <button
             class="p-2 text-steel-400 hover:text-white focus:outline-none"
             style="transition: all 0.15s ease" type="button" x-on:click="toggleSidebarPin">

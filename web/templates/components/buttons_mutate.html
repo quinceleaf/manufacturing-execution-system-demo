@@ -1,0 +1,12 @@
+<!-- START BUTTONS -->
+<div class="flex flex-row mt-4 space-x-3">
+    <button type="submit"
+        class="button-basic">
+        {% if object %} Edit {% else %} Add {% endif %}
+    </button>
+    <a type="button" href="{{request.META.HTTP_REFERER}}"
+        class="button-basic text-gray-500 bg-white border-gray-300 hover:bg-white">
+        Cancel
+    </a>
+</div>
+<!-- END BUTTONS -->

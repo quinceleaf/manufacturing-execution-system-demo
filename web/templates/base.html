@@ -1,26 +1,36 @@
 {% load static %}
 
 <!DOCTYPE html>
+
 <html lang="en">
+
   <head>
     {% include "components/site-info.html" %} 
     {% include "components/styles.html" %}
   </head>
 
-  <body class="bg-gray-50">
-    <div class="min-h-screen flex flex-col">
+  <body class="flex flex-col min-h-screen bg-gray-50">
+  
       {% include "components/header/header.html" %}
+
       <main class="flex flex-grow">
+
         <div class="flex flex-row w-full">
+
           {% include "components/sidebar.html" %}
-          <div class="flex-grow max-w-8xl mx-auto py-6 pl-12 pr-6">
+
+          <div class="flex-1 max-w-5xl py-6 px-6">
             {% include "components/messages.html" %} 
             {% block body_block %} 
             {% endblock %}
           </div>
+
         </div>
+
       </main>
+
       {% include "components/footer.html" %}
-    </div>
+
   </body>
+  
 </html>

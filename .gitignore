@@ -12,37 +12,31 @@
 docs
 
 # logs
-logs
+logs/
 celerybeat-schedule
 
+# testing files
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
 
 # development tooling
 db.sqlite3
-up.sh
-down.sh
-down-v.sh
-logs.sh
-up-prod.sh
-down-prod.sh
-down-v-prod.sh
-logs-prod.sh
-db.sh
-
+*.sh
+!init-letsencrypt.sh
+!entrypoint.sh
+!entrypoint.prod.sh
 jstools
 scripts
-
-auth-github-packages.sh
-build-image.sh
-push-image-to-docker.sh
-set-do-token.sh
 write-env-to-github-secrets.py
 
-staticfiles
 
 # temporary files
+staticfiles
 *.pyc 
 
 # macOS
 .DS_Store
-web/logs/celery.log
-web/logs/celery.log
+

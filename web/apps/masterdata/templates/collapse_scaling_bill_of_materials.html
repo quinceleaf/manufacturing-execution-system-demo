@@ -1,0 +1,299 @@
+{% load widget_tweaks humanize has_group remove_trailing %}
+
+
+<!-- START COLLAPSE - SCALING -->
+    <div class="relative overflow-hidden transition-all max-h-0 h-auto duration-700" style="" x-ref="container1" x-bind:style="scalingopen == true ? 'max-height: ' + $refs.container1.scrollHeight + 'px' : ''">
+        <div class="card-subsection border-0" x-data="{}">
+            <form class="lg:w-1/2 md:w-3/4 w-full h-full" id="scaling_form" method="post" action="" data-material-units-url="{% url 'masterdata:load_material_valid_units' %}" novalidate>
+
+                <!-- START TITLE -->
+                <div class="font-bold text-sm mr-2 md:mb-2 mb-0 pb-1 space-x-2">Scaling</div>
+                <!-- END TITLE -->
+
+                <!-- START FORM -->
+                <div class="mt-2 text-xs leading-5 bg-steel-50 border border-steel-200">
+
+                    <div x-data="{ active: 'YIELD' }">
+
+                        <!-- START TABS -->
+                        <div class="flex border border-steel-100 overflow-hidden -mb-px">
+                            <button class="tab-heading bg-white" x-on:click.prevent="active = 'YIELD'" x-bind:class="{'bg-steel-500 text-white': active === 'YIELD'}">
+                                <span class="md:inline hidden"> Desired </span>Yield
+                            </button>
+                            <button class="tab-heading bg-white" x-on:click.prevent="active = 'MULTIPLE'" x-bind:class="{'bg-steel-500 text-white': active === 'MULTIPLE'}">
+                                Multiple
+                            </button>
+                            <button class="tab-heading bg-white" x-on:click.prevent="active = 'LIMIT'" x-bind:class="{'bg-steel-500 text-white': active === 'LIMIT'}">
+                                <span class="md:inline hidden">Limiting Material</span>
+                                <span class="md:hidden inline">Limit</span>
+                            </button>
+                        </div>
+                        <!-- END TABS -->
+
+                        <!-- START CONTENT -->
+                        {% csrf_token %}
+
+                        <input id="scale_type" type="hidden" name="scale_type" :value="active"/>
+
+                        <div class="border border-steel-100 -mt-px">
+
+                            <!-- START TAB - DESIRED YIELD -->
+                            <div class="p-4 space-y-2" x-show="active === 'YIELD'"
+                            x-transition:enter="transition ease-out duration-900"
+                            x-transition:enter-start="opacity-0 transform scale-90"
+                            x-transition:enter-end="opacity-100 transform scale-100">
+
+                            <div class="input-label md:mb-2 mb-0">Scale standard batch to produce a yield of:</div>
+
+                            <div class="flex flex-col justify-start">
+
+                                {% if data.yields.unit_weight %}
+                                <!-- START YIELD BY WEIGHT -->
+                                <div class="flex md:flex-row flex-col justify-start md:items-end md:mb-6 mb-9">
+
+                                    <div class="md:mb-0 mb-3 mr-3 pt-4 md:pr-0 pr-3 md:pb-8 pb-0 text-gray-500">
+                                        <input type="radio" name="yield_choice" value="WEIGHT" style="position: relative; top: 0.4em;"/>
+                                        <span class="ml-2 md:hidden inline" style="position: relative; top: 0.4em;">{{data.yields.yield_noun|default_if_none:""}} by weight</span>
+                                    </div>
+
+                                    <div class="flex-0 md:mr-3 mr-0 md:w-32 md:mt-0 mt-3">
+                                        {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.yield_quantity_weight %}
+                                    </div>
+
+                                    <div class="flex-1 md:mr-3 mr-0 mt-0">
+                                        <div class="mb-5">
+                                            <label for="{{field.id}}" class="input-label">
+                                                {{scaling_form.yield_unit_weight.label_tag}}
+                                            </label>
+
+                                            {% if scaling_form.is_bound %}
+                                                {% if scaling_form.yield_unit_weight.errors %}
+                                                    <div class="mt-1 relative rounded-md">
+                                                        {% render_field field class="django-select2 border-red-300 bg-red-50" placeholder="Select..." %}
+                                                    </div>
+                                                    <div class="mt-2 input-errors">
+                                                        {% for error in scaling_form.yield_unit_weight.errors %}
+                                                            {{ error }}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% else %}
+                                                    <div class="mt-1 relative rounded-md">
+                                                        {% render_field scaling_form.yield_unit_weight class="django-select2" placeholder="Select..." %}
+                                                    </div>
+                                                {% endif %}
+                                            {% else %}
+                                                <div class="mt-1 relative rounded-md">
+                                                    {% render_field scaling_form.yield_unit_weight class="django-select2" placeholder="Select..." %}
+                                                </div>
+                                            {% endif %}
+
+                                            {% if scaling_form.yield_unit_weight.help_text %}
+                                                <small class="md:mt-1 mt-2 text-xs text-gray-500">{{ scaling_form.yield_unit_weight.help_text|safe }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="flex-0 md:mt-2 mr-0 text-gray-500 self-center md:inline hidden">
+                                        by weight
+                                    </div>
+                                </div>
+                                <!-- END YIELD BY WEIGHT -->
+                                {% endif %}
+
+                                {% if data.yields.unit_volume %}
+                                <!-- START YIELD BY VOLUME -->
+                                <div class="flex md:flex-row flex-col justify-start md:items-end md:mb-6 mb-9">
+
+                                    <div class="md:mb-0 mb-3 mr-3 pt-4 md:pr-0 pr-3 md:pb-8 pb-0 text-gray-500">
+                                        <input type="radio" name="yield_choice" value="VOLUME" style="position: relative; top: 0.4em;"/>
+                                        <span class="ml-2 md:hidden inline" style="position: relative; top: 0.4em;">{{data.yields.yield_noun|default_if_none:""}} by volume</span>
+                                    </div>
+
+                                    <div class="flex-0 md:mr-3 mr-0 md:w-32 md:mt-0 mt-3">
+                                        {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.yield_quantity_volume %}
+                                    </div>
+
+                                    <div class="flex-1 md:mr-3 mr-0 mt-0">
+                                        <div class="mb-5">
+                                            <label for="{{field.id}}" class="input-label">
+                                                {{scaling_form.yield_unit_volume.label_tag}}
+                                            </label>
+
+                                            {% if scaling_form.is_bound %}
+                                                {% if scaling_form.yield_unit_volume.errors %}
+                                                    <div class="mt-1 relative rounded-md">
+                                                        {% render_field field class="django-select2 border-red-300 bg-red-50" placeholder="Select..." %}
+                                                    </div>
+                                                    <div class="mt-2 input-errors">
+                                                        {% for error in scaling_form.yield_unit_volume.errors %}
+                                                            {{ error }}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% else %}
+                                                    <div class="mt-1 relative rounded-md">
+                                                        {% render_field scaling_form.yield_unit_volume class="django-select2" placeholder="Select..." %}
+                                                    </div>
+                                                {% endif %}
+                                            {% else %}
+                                                <div class="mt-1 relative rounded-md">
+                                                    {% render_field scaling_form.yield_unit_volume class="django-select2" placeholder="Select..." %}
+                                                </div>
+                                            {% endif %}
+
+                                            {% if scaling_form.yield_unit_volume.help_text %}
+                                                <small class="md:mt-1 mt-2 text-xs text-gray-500">{{ scaling_form.yield_unit_volume.help_text|safe }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="flex-0 md:mt-2 mr-0 text-gray-500 self-center md:inline hidden">
+                                        by volume
+                                    </div>
+                                </div>
+                                <!-- END YIELD BY VOLUME -->
+                                {% endif %}
+
+                                {% if data.yields.unit_each %}
+                                <!-- START YIELD BY EACH -->
+                                <div class="flex md:flex-row flex-col justify-start md:items-end md:mb-6 mb-9">
+
+                                    <div class="md:mb-0 mb-3 mr-3 pt-4 md:pr-0 pr-3 md:pb-8 pb-0 text-gray-500">
+                                        <input type="radio" name="yield_choice" value="EACHES" style="position: relative; top: 0.4em;"/>
+                                        <span class="ml-2 md:hidden inline" style="position: relative; top: 0.4em;">{{data.yields.note_each|lower|default_if_none:"by each"}}</span>
+                                    </div>
+
+                                    <div class="flex-0 md:mr-3 mr-0 md:w-32 md:mt-0 mt-3">
+                                        {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.yield_quantity_each  %}
+                                    </div>
+
+                                    <div class="flex-1 md:mr-3 mr-0 mt-0">
+                                        <div class="mb-5">
+                                            <label for="{{field.id}}" class="input-label">
+                                                {{scaling_form.yield_unit_each.label_tag}}
+                                            </label>
+
+                                            {% if scaling_form.is_bound %}
+                                                {% if scaling_form.yield_unit_each.errors %}
+                                                    <div class="mt-1 relative rounded-md">
+                                                        {% render_field field class="django-select2 border-red-300 bg-red-50" placeholder="Select..." %}
+                                                    </div>
+                                                    <div class="mt-2 input-errors">
+                                                        {% for error in scaling_form.yield_unit_each.errors %}
+                                                            {{ error }}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% else %}
+                                                    <div class="mt-1 relative rounded-md">
+                                                        {% render_field scaling_form.yield_unit_each class="django-select2" placeholder="Select..." %}
+                                                    </div>
+                                                {% endif %}
+                                            {% else %}
+                                                <div class="mt-1 relative rounded-md">
+                                                    {% render_field scaling_form.yield_unit_each class="django-select2" placeholder="Select..." %}
+                                                </div>
+                                            {% endif %}
+
+                                            {% if scaling_form.yield_unit_each.help_text %}
+                                                <small class="md:mt-1 mt-2 text-xs text-gray-500">{{ scaling_form.yield_unit_each.help_text|safe }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="flex-0 md:mt-2 mr-0 text-gray-500 self-center md:inline hidden">
+                                        {{data.yields.note_each|lower|default_if_none:"by each"}}
+                                    </div>
+                                </div>
+                                <!-- END YIELD BY EACH -->
+                                {% endif %}
+
+                            </div>
+
+                            </div>
+                            <!-- END TAB - DESIRED YIELD -->
+
+                            <!-- START TAB - BY MULTIPLE -->
+                            <div class="p-4 space-y-2" x-show="active === 'MULTIPLE'"
+                            x-transition:enter="transition ease-out duration-900"
+                            x-transition:enter-start="opacity-0 transform scale-90"
+                            x-transition:enter-end="opacity-100 transform scale-100">
+
+                            <div>
+                                {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.multiple_scaling_factor %}
+                            </div>
+
+                            </div>
+                            <!-- END TAB - BY MULTIPLE -->
+
+                            <!-- START TAB - LIMITING MATERIAL -->
+                            <div class="p-4 space-y-2" x-show="active === 'LIMIT'"
+                            x-transition:enter="transition ease-out duration-900"
+                            x-transition:enter-start="opacity-0 transform scale-90"
+                            x-transition:enter-end="opacity-100 transform scale-100">
+
+                            <div class="flex flex-col justify-start">
+                    
+                                <div class="flex md:flex-row flex-col justify-start md:items-end mb-3">
+                                    <div id="limit-line-block" class="flex-1 md:mr-3 mr-0 md:mt-0 mt-3">
+                                        <div class="mb-3">
+                                            <label for="limiting-material" class="input-label">
+                                                Material
+                                            </label>
+                                            <div class="mt-1 relative rounded-md">
+                                                <select id="limiting-material" name="limit_line" class="django-select2">
+                                                    {% for line in data.lines.all %}
+                                                        <option value="{{line.item.id}}">{{line.item.name}}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4 text-gray-500">limited to</div>
+
+                                <div class="flex md:flex-row flex-col justify-start md:items-end md:mb-6 mb-12">
+
+                                    <div class="md:mr-3 mr-0 md:mt-0 mt-3">
+                                        {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.limit_quantity %}
+                                    </div>
+
+                                    <div class="flex-1 md:mr-3 mr-0 md:mt-0 mt-3">
+                                        <div class="mb-5">
+                                            <label for="limiting-material" class="input-label">
+                                                Unit
+                                            </label>
+                                            <div class="mt-1 relative rounded-md">
+                                                <select id="limiting-unit" name="limit_unit" class="django-select2"></select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            </div>
+                            <!-- END TAB - LIMITING MATERIAL -->
+
+                        </div>
+    
+                        <!-- END CONTENT -->
+
+                    </div>
+                </div>
+                <!-- END FORM -->
+
+                <!-- START FORM BUTTON -->
+                <div class="mt-3 sm:mt-4">
+                    <button type="submit" name="scaling_form" class="button-input-height">
+                        Scale
+                    </button>
+                    <button @click="scalingopen = false; reportingopen = false;" type="button" class="button-input-height">
+                        Close
+                    </button>
+                </div>
+                <!-- END FORM BUTTON -->
+
+            </form>
+        </div>
+    </div>
+<!-- END COLLAPSE - SCALING -->
+

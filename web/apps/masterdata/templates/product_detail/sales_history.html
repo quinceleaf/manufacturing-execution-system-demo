@@ -1,0 +1,16 @@
+    <!-- START SALES HISTORY -->
+    <div class="card">
+
+        <div class="card-section-block">
+            <div class="card-heading">Sales History</div>
+        </div>
+
+        <div class="card-text">
+        {% for sale in data.sales_order_lines.all %}
+        {% empty %}
+            No sales recorded
+        {% endfor %}
+        </div>
+
+    </div>
+    <!-- END SALES HISTORY -->

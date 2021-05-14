@@ -1,0 +1,19 @@
+    <!-- START BUTTONS -->
+    <div class="mt-4 flex flex-row justify-between">
+      <div>
+        {% if wizard.steps.next %}
+          <button class="button-basic" type="submit">Next</button>
+        {% else %}
+          <button class="button-basic" type="submit">Submit</button>
+        {% endif %}
+      </div>
+      <div>
+        {% if wizard.steps.prev %}
+          <button class="button-basic" name="wizard_goto_step" type="submit" value="{{ wizard.steps.first }}">Back to Start</button>
+          <button class="button-basic" name="wizard_goto_step" type="submit" value="{{ wizard.steps.prev }}">Previous</button>
+        {% endif %}
+        <a href="{{options.parent_object.get_absolute_url}}" class="button-basic bg-red-700 hover:bg-red-700 focus:ring-red-300" type="button">Cancel</a> 
+      </div>
+    </div>
+    <!-- END BUTTONS -->
+

@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+{% block body_block %}
+{% load static %}
+{% load humanize editable has_group remove_trailing %}
+
+
+<title>{{data.product.name}}, v.{{data.version}}, scaled</title>
+
+<!-- START VISIBLE CONTENT -->
+<div>
+
+    <!-- START TOP PANEL -->
+    <div>
+        <div class="flex flex-col justify-start">
+            <div class="font-bold">
+                <a href="{% url 'masterdata:product_detail' pk=data.product.id %}" class="link">
+                    {{data.product}}
+                </a>
+            </div>
+            <div class="page-heading">
+                Bill of Materials
+            </div>
+        </div>
+
+       <!-- START ACTIONS (PANEL) -->
+        <div class="actions">
+
+            <!-- START STATUS -->
+            <div class="mt-1 md:mr-3 mr-0"><span class="p-1 px-2 text-white bg-steel-500">v.{{data.version}} | Status: {{data.get_state_display}}</span></div>
+            <!-- END STATUS -->
+
+        </div>
+        <!-- END ACTIONS (PANEL) -->
+
+    </div>
+    <!-- END TOP PANEL -->
+
+    <!-- START BATCH -->
+    <div class="card">
+
+        <div class="card-heading mb-0">Scaled Batch</div>
+
+        <div x-data="{ scalingopen : false, reportingopen : false, }">
+        <!-- START ACTIONS (SECTION) -->
+        <div class="md:mb-5 mb-3">
+            <a class="action-link" href="#" @click="reportingopen = !reportingopen;">
+                <i class="material-icons text-sm" style="position: relative; top: 0.2em;">picture_as_pdf</i>
+                <span class="action-link-text">Export PDF as Scaled</span>
+            </a>
+        </div>
+        <!-- END ACTIONS (SECTION) -->
+
+        {% include 'collapse_reporting_bill_of_materials.html' %}
+        </div>
+
+        <div class="p-3 bg-steel-200">
+            <i class="material-icons text-sm" style="position: relative; top: 0.1em;">open_in_full</i>
+            {{scaling_description|safe}}
+        </div>
+
+        <!-- START MATERIALS SUBSECTION -->
+        <div class="card-subsection">
+            <div class="font-bold text-sm">Materials</div>
+        </div>
+
+        <div class="grid md:grid-cols-12 grid-cols-3">
+            <!-- START GRID HEADER -->
+                <div class="grid-heading col-span-3 pr-10 text-right md:inline hidden">Quantity</div>
+                <div class="grid-heading col-span-6 md:inline hidden">Material</div>
+                <div class="grid-heading col-span-3 md:inline hidden">Note</div>
+            <!-- END GRID HEADER -->
+
+            <!-- START GRID DATA -->
+                {% for line in scaled_lines %}
+                    {% if forloop.last %}
+                        <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right">
+                            {% if line.unit.symbol == 'to taste' %}
+                                <span class="font-italic">to taste</span>
+                            {% elif line.unit.symbol == 'g' %}
+                                {{line.quantity|floatformat:"0"|remove_trailing|intcomma}} {{line.unit.symbol}}
+                            {% elif line.unit.symbol == 'ml' %}
+                                {{line.quantity|floatformat:"0"|remove_trailing|intcomma}} {{line.unit.symbol}}
+                            {% else %}
+                                {{line.quantity|remove_trailing|intcomma}} {{line.unit.symbol}}
+                            {% endif %}
+                        </div>
+                        <div class="grid-element md:col-span-6 col-span-2">
+                            {% if line.item.category == 'WIP' or line.item.category == 'FINISHED' %}
+                                <a class="link" href="{% url 'masterdata:product_detail' pk=line.item.id %}">{{line.item.name|title}}</a>
+                            {% else %}
+                                <a class="link" href="{% url 'masterdata:material_detail' pk=line.item.id %}">{{line.item.name|title}}</a>
+                            {% endif %}
+                            <span class="md:hidden inline"><br/>{{line.note|default:""}}</span>
+                        </div>
+                        <div class="grid-element md:col-span-3 md:inline hidden">{{line.note|default:""}}</div>
+                    {% else %}
+                        <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right md:border-b md:border-b-steel-300">
+                            {% if line.unit.symbol == 'to taste' %}
+                                <span class="font-italic">to taste</span>
+                            {% else %}
+                                {{line.quantity|remove_trailing|intcomma}} {{line.unit.symbol}}
+                            {% endif %}
+                        </div>
+                        <div class="grid-element md:col-span-6 col-span-2 md:border-b md:border-b-steel-300">
+                            {% if line.item.category == 'WIP' or line.item.category == 'FINISHED' %}
+                                <a class="link" href="{% url 'masterdata:product_detail' pk=line.item.id %}">{{line.item.name|title}}</a>
+                            {% else %}
+                                <a class="link" href="{% url 'masterdata:material_detail' pk=line.item.id %}">{{line.item.name|title}}</a>
+                            {% endif %}
+                            <span class="md:hidden inline"><br/>{{line.note|default:""}}</span>
+                        </div>
+                        <div class="grid-element md:col-span-3 md:border-b md:border-b-steel-300 md:inline hidden">{{line.note|default:""}}</div>
+                    {% endif %}
+                {% empty %}
+                    <div class="grid-element mt-3 md:col-span-12 col-span-3">No materials entered</div>
+                {% endfor %}
+            <!-- END GRID DATA -->
+        </div>
+        <!-- END MATERIALS SUBSECTION -->
+
+
+        <!-- START RESOURCES SUBSECTION -->
+        <div class="card-subsection">
+            <div class="font-bold text-sm">Resources</div>
+        </div>
+
+        <div class="grid md:grid-cols-12 grid-cols-3">
+            <!-- START GRID HEADER -->
+                <div class="grid-heading md:col-span-3 pr-10 text-right font-bold md:inline hidden">Capacity Req'd</div>
+                <div class="grid-heading md:col-span-6 font-bold md:inline hidden">Resource</div>
+                <div class="grid-heading md:col-span-3 font-bold md:inline hidden">Note</div>
+            <!-- END GRID HEADER -->
+
+            <!-- START GRID DATA -->
+                {% for resource in scaled_resources %}
+
+                    {% if forloop.last %}
+                        <div class="grid-element md:col-span-3 col-span-1 text-right pr-10">
+                            {{resource.capacity_required|intcomma}} {{resource.resource.unit}}
+                        </div>
+                        <div class="grid-element md:col-span-6 col-span-2">
+                            <a class="link" href="{% url 'masterdata:resource_detail' pk=resource.resource.id %}">{{resource.resource.name|title}}</a>
+                        </div>
+                        <div class="grid-element md:col-span-3 pr-10 md:inline hidden">
+                            {{resource.note|default:""}}
+                        </div>
+                    {% else %}
+                        <div class="grid-element md:col-span-3 col-span-1 text-right pr-10 md:border-b md:border-b-steel-300">
+                            {{resource.capacity_required|intcomma}} {{resource.resource.unit}}
+                        </div>
+                        <div class="grid-element md:col-span-6 col-span-2 md:border-b md:border-b-steel-300">
+                            <a class="link" href="{% url 'masterdata:resource_detail' pk=resource.resource.id %}">{{resource.resource.name|title}}</a>
+                        </div>
+                        <div class="grid-element md:col-span-3 pr-10 md:border-b md:border-b-steel-300 md:inline hidden">
+                            {{resource.note|default:""}}
+                        </div>
+                    {% endif %}
+
+                {% empty %}
+
+                    <div class="grid-element mt-3 md:col-span-12 col-span-3 md:border-b md:border-b-steel-300">No resources entered</div>
+
+                {% endfor %}
+            <!-- END GRID DATA -->
+        </div>
+        <!-- END RESOURCES SUBSECTION -->
+
+        <!-- START YIELDS SUBSECTION -->
+        <div class="card-subsection pb-0 border-0">
+            <div class="font-bold text-sm">Yields</div>
+        </div>
+
+
+        <div class="grid md:grid-cols-12 grid-cols-3">
+
+            {% if scaled_yield %}
+
+                {% if scaled_yield.unit_weight %}
+                    {% if scaled_yield.unit_weight.symbol == 'g' %}
+                        <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right"">{{scaled_yield.quantity_weight|floatformat:"0"|remove_trailing|intcomma}} {{scaled_yield.unit_weight.symbol}}</div>
+                    {% else %}
+                        <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right"">{{scaled_yield.quantity_weight|floatformat:"-3"|remove_trailing|intcomma}} {{scaled_yield.unit_weight.symbol}}</div>
+                    {% endif %}
+                    <div class="grid-element md:col-span-9 col-span-2"></div>
+                {% endif %}
+
+                {% if scaled_yield.unit_volume %}
+                    {% if scaled_yield.unit_volume.symbol == 'ml' %}
+                        <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right"">{{scaled_yield.quantity_volume|floatformat:"0"|remove_trailing|intcomma}} {{scaled_yield.unit_volume.symbol}}</div>
+                    {% else %}
+                        <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right"">{{scaled_yield.quantity_volume|floatformat:"-3"|remove_trailing|intcomma}}</div>
+                    {% endif %}
+                    <div class="grid-element md:col-span-9 col-span-2"></div>
+                {% endif %}
+
+                {% if scaled_yield.unit_each %}
+                    <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right"">{{scaled_yield.quantity_each|floatformat:"0"|remove_trailing|intcomma}} {{scaled_yield.unit_each.symbol}}</div>
+                    <div class="grid-element md:col-span-6 col-span-1 ">{{scaled_yield.note_each|default:"<em>(unit ambiguous)</em>"}}</div>
+                    <div class="grid-element md:col-span-3 col-span-1"></div>
+                {% endif %}
+
+            {% else %}
+
+                <div class="grid-element mt-3 md:col-span-12 col-span-3 md:border-b md:border-b-steel-300">No yields entered</div>
+
+            {% endif %}
+
+        </div>
+        <!-- END YIELDS SUBSECTION -->
+
+
+
+    </div>
+    <!-- END BATCH -->
+
+
+    <!-- START PROCEDURE TABS -->
+    <div class="card">
+        <div class="card-heading">Procedure</div>
+        <div x-data="{ active: 0, modalconfirmdeleteopen: false,  }">
+
+            <!-- START TABS -->
+            <div class="flex border border-steel-200 overflow-hidden -mb-px">
+                <button class="tab-heading" x-on:click.prevent="active = 0" x-bind:class="{'bg-steel-500 text-white': active === 0}">English</button>
+                <button class="tab-heading" x-on:click.prevent="active = 1" x-bind:class="{'bg-steel-500 text-white': active === 1}">Espagnol</button>
+                <button class="tab-heading" x-on:click.prevent="active = 2" x-bind:class="{'bg-steel-500 text-white': active === 2}">Français</button>
+            </div>
+            <!-- END TABS -->
+
+            <!-- START CONTENT -->
+            <div class="border border-steel-200 -mt-px">
+
+                <!-- START TAB - ENGLISH -->
+                <div class="p-4 space-y-2" x-show="active === 0"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform scale-90"
+                x-transition:enter-end="opacity-100 transform scale-100">
+
+                    {% if data.get_procedure_english %}
+
+                        <div class="mb-3 text-xs text-red-700">Note: quantities of materials, equipment, etc within the text of the procedure are not scaled along with the Standard Batch materials above. Please consider how the steps and/wording can be better written to accomodate this. </div>
+
+                        <span class="tab-content">{{data.get_procedure_english.procedure|safe}}</span>
+
+                    {% else %}
+
+                        <span class="tab-content">No procedure entered</span>
+
+                    {% endif %}
+
+                </div>
+                <!-- END TAB - ENGLISH -->
+
+                <!-- START TAB - ESPAGNOL -->
+                <div class="p-4 space-y-2" x-show="active === 1"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform scale-90"
+                x-transition:enter-end="opacity-100 transform scale-100">
+
+                    {% if data.get_procedure_espagnol %}
+
+                        <div class="mb-3 text-xs text-red-700">Nota: las cantidades de materiales, equipos, etc. dentro del texto del procedimiento no se escalan junto con los materiales del lote estándar arriba. Tenga en cuenta cómo se pueden redactar mejor los pasos y la redacción para adaptarse a esto.</div>
+
+                        <span class="tab-content">{{data.get_procedure_espagnol.procedure|safe}}</span>
+
+                    {% else %}
+
+                        <span class="tab-content">No hay traducción al espagñol disponible</span>
+
+                    {% endif %}
+                </div>
+                <!-- END TAB - ESPAGNOL -->
+
+                <!-- START TAB - FRANÇAIS -->
+                <div class="p-4 space-y-2" x-show="active === 2"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform scale-90"
+                x-transition:enter-end="opacity-100 transform scale-100">
+
+                    {% if data.get_procedure_francais %}
+
+                        <div class="mb-3 text-xs text-red-700">Remarque: les quantités de matériaux, d'équipement, etc. dans le texte de la procédure ne sont pas mises à l'échelle avec les matériaux du lot standard ci-dessus. Veuillez considérer comment les étapes et / le libellé peuvent être mieux rédigés pour tenir compte de cela.</div>
+
+                        <span class="tab-content">{{data.get_procedure_francais.procedure|safe}}</span>
+
+                    {% else %}
+
+                        <span class="tab-content">Pas de traduction disponible</span>
+
+                    {% endif %}
+
+                </div>
+                <!-- END TAB - FRANÇAIS -->
+
+            </div>
+            <!-- END CONTENT -->
+
+        </div>
+    </div>
+    <!-- END PROCEDURE TABS -->
+
+</div>
+<!-- END VISIBLE CONTENT -->
+
+{% endblock %}

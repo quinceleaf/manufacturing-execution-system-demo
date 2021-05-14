@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block body_block %}
+{% load static %}
+{% load widget_tweaks %}
+
+<title>{% if object %} Edit {% else %} Add {% endif %}{{options.model}}</title>
+
+<link type="text/css" rel="stylesheet" href="{% static 'css/select2.min.css' %}"/>
+<link type="text/css" rel="stylesheet" href="{% static 'css/select2-custom.css' %}"/>
+
+<!-- START VISIBLE CONTENT -->
+    <div>
+
+        {% include 'components/top_panel_child_mutate.html' %}
+
+        <!-- START FORM -->
+        <div>
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <!-- START FORM (GENERIC) -->
+                <div class="card">
+
+                    {% include 'generic/generic_mutate_errors.html' with form=form %}
+
+                    {% for field in form.visible_fields %}
+                        {% include 'generic/generic_form_field.html' with form=form field=field %}
+                    {% endfor %}
+                </div>
+                <!-- END FORM (GENERIC) -->
+
+                {% include 'components/buttons_mutate.html' %}
+
+            </form>
+        </div>
+        <!-- END FORM -->
+
+    </div>
+<!-- END VISIBLE CONTENT -->
+
+<script type="text/javascript" src="{% static 'js/jquery-3.5.1.min.js' %}" ></script> 
+<script type="text/javascript" src="{% static 'js/select2.min.js' %}" ></script>
+<script type="text/javascript" src="{% static 'django_select2/django_select2.js' %}" ></script> 
+
+<script type="text/javascript">
+    $('form').submit(function(e) {
+        $(':disabled').each(function(e) {
+            $(this).removeAttr('disabled');
+        })
+    });
+</script> 
+
+{% endblock %}

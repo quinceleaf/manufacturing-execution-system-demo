@@ -1,0 +1,16 @@
+    <!-- START GENERAL ERRORS -->
+    <div>
+        {% for hidden_field in form.hidden_fields %}
+        {{ hidden_field }}
+        {% endfor %}
+
+        {% if form.non_field_errors %}
+            <div class="relative mb-6 px-4 py-2 pb-3 text-sm text-red-700 border-0" role="alert">
+                {% for error in form.non_field_errors %}
+                    <i class="material-icons text-red-700" style="position: relative; top: 0.3em;">error_outline</i>
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+    <!-- END GENERAL ERRORS -->

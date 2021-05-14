@@ -1,0 +1,690 @@
+{% extends "base.html" %}
+{% block body_block %}
+{% load static %}
+{% load humanize editable has_group remove_trailing %}
+
+
+<title>{{data.product.name}}, v.{{data.version}}</title>
+
+<link type="text/css" rel="stylesheet" href="{% static 'css/select2.min.css' %}"/>
+<link type="text/css" rel="stylesheet" href="{% static 'css/select2-custom.css' %}"/>
+
+<!-- START VISIBLE CONTENT -->
+<div>
+
+    <!-- START TOP PANEL -->
+    <div>
+        <div class="flex flex-col justify-start">
+            <div class="font-bold">
+                <a href="{% url 'masterdata:product_detail' pk=data.product.id %}" class="link">
+                    {{data.product}}
+                </a>
+            </div>
+            <div class="page-heading">
+                Bill of Materials
+            </div>
+        </div>
+
+        <!-- START ACTIONS (PANEL) -->
+        <div class="actions">
+
+            <!-- START STATUS -->
+            <div class="mt-1 md:mr-3 mr-0"><span class="p-1 px-2 text-white bg-steel-500">v.{{data.version}} | Status: {{data.get_state_display}}</span></div>
+            <!-- END STATUS -->
+
+            {% if request.user|has_group:'Workflow (BOM)' %}
+                <div class="md:mt-0 mt-2">
+                {% if data.state == 'DRAFT' %}
+                    <a class="action-link" href="{% url 'masterdata:billofmaterials_change_status' pk=data.id status='AWAITING' %}">
+                        <i class="material-icons text-sm" style="position: relative; top: 0.1em;">pan_tool</i>
+                        <span class="action-text">Submit for Approval</span>
+                    </a>
+                {% elif data.state == 'AWAITING' %}
+                    {% if request.user|has_group:'Workflow (BOM)-Approval' %}
+                        <a class="action-link" href="{% url 'masterdata:billofmaterials_change_status' pk=data.id status='APPROVED' %}">
+                            <i class="material-icons text-sm" style="position: relative; top: 0.2em;">done</i>
+                            <span class="action-text">Approve</span>
+                        </a>
+                        <a class="action-link" href="{% url 'masterdata:billofmaterials_change_status' pk=data.id status='RETURNED' %}">
+                            <i class="material-icons text-sm" style="position: relative; top: 0.2em;">rule</i>
+                            <span class="action-text">Return for Revisions</span>
+                        </a>
+                    {% else %}
+                        <a class="action-link" href="{% url 'masterdata:billofmaterials_change_status' pk=data.id status='DRAFT' %}">
+                            <i class="material-icons text-sm" style="position: relative; top: 0.2em;">settings_back</i>
+                            <span class="action-text">Retract Submission</span>
+                        </a>
+                    {% endif %}
+                {% elif data.state == 'RETURNED' %}
+                    <a class="action-link" href="{% url 'masterdata:billofmaterials_change_status' pk=data.id status='AWAITING' %}">
+                        <i class="material-icons text-sm" style="position: relative; top: 0.2em;">pan_tool</i>
+                        <span class="action-text">Submit for Approval</span>
+                    </a>
+                {% elif data.state == 'APPROVED' %}
+                    <a class="action-link" href="{% url 'masterdata:billofmaterials_increment_version' pk=data.id %}">
+                        <i class="material-icons text-sm" style="position: relative; top: 0.2em;">autorenew</i>
+                        <span class="action-text">Generate Version</span>
+                    </a>
+                {% endif %}
+                </div>
+            {% endif %}
+
+        </div>
+        <!-- END ACTIONS (PANEL) -->
+
+    </div>
+    <!-- END TOP PANEL -->
+
+    <!-- START BATCH -->
+    <div class="card">
+
+        <div class="card-heading mb-0">Standard Batch</div>
+
+        <div x-data="{ scalingopen : false, reportingopen : false, }">
+        <!-- START ACTIONS (SECTION) -->
+        <div class="actions">
+            <a class="action-link" href="#" @click="scalingopen = !scalingopen; reportingopen = false;" >
+                <i class="material-icons text-sm" style="position: relative; top: 0.2em;">open_in_full</i>
+                <span class="action-link-text">Scale</span>
+            </a>
+            <a class="action-link" href="#" @click="reportingopen = !reportingopen; scalingopen = false;">
+                <i class="material-icons text-sm" style="position: relative; top: 0.2em;">picture_as_pdf</i>
+                <span class="action-link-text">Export PDF</span>
+            </a>
+
+        </div>
+        <!-- END ACTIONS (SECTION) -->
+
+        {% include 'collapse_scaling_bill_of_materials.html' %}
+        {% include 'collapse_reporting_bill_of_materials.html' %}
+
+        </div>
+
+        <!-- START MATERIALS SUBSECTION -->
+        <div class="card-subsection">
+
+            <div class="font-bold text-sm">Materials</div>
+
+            <!-- START ACTIONS (SUBSECTION) -->
+            {% if request.user|has_group:'Workflow (BOM)' and data|editable %} 
+                <div class="actions mb-0">
+                    <a class="action-link" href="{% url 'masterdata:billofmaterials_lines_edit' pk=data.id %}">
+                        <i class="material-icons text-sm" style="position: relative; top: 0.1em;">edit</i>
+                        <span class="action-link-text">Edit</span>
+                    </a>
+                </div>
+            {% endif %}
+            <!-- END ACTIONS (SUBSECTION) -->
+        </div>
+
+
+        <div class="grid md:grid-cols-12 grid-cols-3">
+            <!-- START GRID HEADER -->
+                <div class="grid-heading col-span-3 pr-10 text-right md:inline hidden">Quantity</div>
+                <div class="grid-heading col-span-6 md:inline hidden">Material</div>
+                <div class="grid-heading col-span-3 md:inline hidden">Note</div>
+            <!-- END GRID HEADER -->
+
+            <!-- START GRID DATA -->
+                {% for line in data.lines.all %}
+                    {% if forloop.last %}
+                        <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right">
+                            {% if line.unit.symbol == 'to taste' %}
+                                <span class="font-italic">to taste</span>
+                            {% elif line.unit.symbol == 'g' %}
+                                {{line.quantity|floatformat:"0"|remove_trailing|intcomma}} {{line.unit.symbol}}
+                            {% elif line.unit.symbol == 'ml' %}
+                                {{line.quantity|floatformat:"0"|remove_trailing|intcomma}} {{line.unit.symbol}}
+                            {% else %}
+                                {{line.quantity|remove_trailing|intcomma}} {{line.unit.symbol}}
+                            {% endif %}
+                        </div>
+                        <div class="grid-element md:col-span-6 col-span-2">
+                            {% if line.item.category == 'WIP' or line.item.category == 'FINISHED' %}
+                                <a class="link" href="{% url 'masterdata:product_detail' pk=line.item.id %}">{{line.item.name|title}}</a>
+                            {% else %}
+                                <a class="link" href="{% url 'masterdata:material_detail' pk=line.item.id %}">{{line.item.name|title}}</a>
+                            {% endif %}
+                            <span class="md:hidden inline"><br/>{{line.note|default:""}}</span>
+                        </div>
+                        <div class="grid-element md:col-span-3 md:inline hidden">{{line.note|default:""}}</div>
+                    {% else %}
+                        <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right md:border-b md:border-b-steel-300">
+                            {% if line.unit.symbol == 'to taste' %}
+                                <span class="font-italic">to taste</span>
+                            {% else %}
+                                {{line.quantity|remove_trailing|intcomma}} {{line.unit.symbol}}
+                            {% endif %}
+                        </div>
+                        <div class="grid-element md:col-span-6 col-span-2 md:border-b md:border-b-steel-300">
+                            {% if line.item.category == 'WIP' or line.item.category == 'FINISHED' %}
+                                <a class="link" href="{% url 'masterdata:product_detail' pk=line.item.id %}">{{line.item.name|title}}</a>
+                            {% else %}
+                                <a class="link" href="{% url 'masterdata:material_detail' pk=line.item.id %}">{{line.item.name|title}}</a>
+                            {% endif %}
+                            <span class="md:hidden inline"><br/>{{line.note|default:""}}</span>
+                        </div>
+                        <div class="grid-element md:col-span-3 md:border-b md:border-b-steel-300 md:inline hidden">{{line.note|default:""}}</div>
+                    {% endif %}
+                {% empty %}
+                {% endfor %}
+            <!-- END GRID DATA -->
+        </div>
+        <!-- END MATERIALS SUBSECTION -->
+
+        <!-- START YIELDS SUBSECTION -->
+        <div class="card-subsection border-0">
+
+            <div class="font-bold text-sm">Yield</div>
+
+                <!-- START ACTIONS (SUBSECTION) -->
+                {% if request.user|has_group:'Workflow (BOM)' and data|editable %} 
+                    <div class="actions mb-0">
+                        {% if data.has_yields %}
+                            <a class="action-link" href="{% url 'masterdata:billofmaterials_yield_edit' pk=data.yields.id %}">
+                                <i class="material-icons text-sm" style="position: relative; top: 0.1em;">edit</i>
+                                <span class="action-link-text">Edit</span>
+                            </a>
+                        {% else %}
+                            <a class="action-link" href="{% url 'masterdata:billofmaterials_yield_add' pk=data.id %}">
+                                <i class="material-icons text-sm" style="position: relative; top: 0.2em;">add</i>
+                                <span class="action-link-text">add</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                <!-- END ACTIONS (SUBSECTION) -->
+        </div>
+
+        {% if data.has_yields %}
+            <div class="grid md:grid-cols-12 grid-cols-3">
+
+                {% if data.yields.unit_weight %}
+                    {% if data.yields.unit_weight.symbol == 'g' %}
+                        <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right"">{{data.yields.quantity_weight|floatformat:"0"|remove_trailing|intcomma}} {{data.yields.unit_weight.symbol}}</div>
+                    {% else %}
+                        <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right"">{{data.yields.quantity_weight|floatformat:"-3"|remove_trailing|intcomma}} {{data.yields.unit_weight.symbol}}</div>
+                    {% endif %}
+                    <div class="grid-element md:col-span-9 col-span-2 "></div>
+                {% endif %}
+
+                {% if data.yields.unit_volume %}
+                    {% if data.yields.unit_volume.symbol == 'ml' %}
+                        <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right"">{{data.yields.quantity_volume|floatformat:"0"|remove_trailing|intcomma}} {{data.yields.unit_volume.symbol}}</div>
+                    {% else %}
+                        <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right"">{{data.yields.quantity_volume|floatformat:"-3"|remove_trailing|intcomma}}</div>
+                    {% endif %}
+                    <div class="grid-element md:col-span-9 col-span-2 "></div>
+                {% endif %}
+
+                {% if data.yields.unit_each %}
+                    <div class="grid-element md:col-span-3 col-span-1 pr-10 text-right"">{{data.yields.quantity_each|remove_trailing|intcomma|floatformat:"0"}} {{data.yields.unit_each.symbol}}</div>
+                    <div class="grid-element md:col-span-9 col-span-2 ">{{data.yields.note_each|default:"<em>(unit ambiguous)</em>"}}</div>
+                {% endif %}
+
+            </div>
+        {% else %}
+            <div class="grid-element text-gray-500">No yields entered</div>
+        {% endif %}
+        <!-- END YIELDS SUBSECTION -->
+
+        <!-- START RESOURCES SUBSECTION -->
+
+        <div class="card-subsection">
+
+            <div class="font-bold text-sm">Resources</div>
+
+            <!-- START ACTIONS (SUBSECTION) -->
+            {% if request.user|has_group:'Workflow (BOM)' and data|editable %} 
+                <div class="actions mb-0">
+                    <a class="action-link" href="{% url 'masterdata:billofmaterials_resources_edit' pk=data.id %}">
+                        <i class="material-icons text-sm" style="position: relative; top: 0.1em;">edit</i>
+                        <span class="action-link-text">Edit</span>
+                    </a>
+                </div>
+            {% endif %}
+            <!-- END ACTIONS (SUBSECTION) -->
+        </div>
+
+        <div class="grid md:grid-cols-12 grid-cols-3 text-xs">
+            <!-- START GRID HEADER -->
+                <div class="grid-heading col-span-3 text-right pr-10 font-bold md:inline hidden">Capacity Req'd</div>
+                <div class="grid-heading col-span-6 font-bold md:inline hidden">Resource</div>
+                <div class="grid-heading col-span-3 font-bold md:inline hidden">Note</div>
+            <!-- END GRID HEADER -->
+
+            <!-- START GRID DATA -->
+                {% for resource in data.resource_requirements.all %}
+
+                    {% if forloop.last %}
+                        <div class="grid-element md:col-span-3 col-span-1 text-right pr-10">
+                            {{resource.capacity_required|remove_trailing|intcomma}} {{resource.resource.unit}}
+                        </div>
+                        <div class="grid-element md:col-span-6 col-span-2">
+                            <a class="link" href="{% url 'masterdata:resource_detail' pk=resource.resource.id %}">{{resource.resource.name|title}}</a>
+                        </div>
+                        <div class="grid-element md:col-span-3 md:border-b md:border-b-steel-300 md:inline hidden">{{resource.note|default:""}}</div>
+                    {% else %}
+                        <div class="grid-element md:col-span-3 col-span-1 text-right pr-10 md:border-b md:border-b-steel-300">
+                            {{resource.capacity_required|remove_trailing|intcomma}} {{resource.resource.unit}}
+                        </div>
+                        <div class="grid-element md:col-span-6 col-span-2 md:border-b md:border-b-steel-300">
+                            <a class="link" href="{% url 'masterdata:resource_detail' pk=resource.resource.id %}">{{resource.resource.name|title}}</a>
+                        </div>
+                        <div class="grid-element md:col-span-3 md:border-b md:border-b-steel-300 md:inline hidden">{{resource.note|default:""}}</div>
+                    {% endif %}
+                {% empty %}
+                    <div class="grid-element mt-3 md:col-span-12 col-span-3">No resources entered</div>
+                {% endfor %}
+            <!-- END GRID DATA -->
+        </div>
+        <!-- END RESOURCES SUBSECTION -->
+
+
+    </div>
+    <!-- END BATCH -->
+
+
+    <!-- START PROCEDURE TABS -->
+    <div class="card">
+        <div class="card-heading">Procedure</div>
+        <div x-data="{ active: 0, modalconfirmdeleteopen: false,  }">
+
+            <!-- START TABS -->
+            <div class="flex border border-steel-200 overflow-hidden -mb-px">
+                <button class="tab-heading" x-on:click.prevent="active = 0" x-bind:class="{'bg-steel-500 text-white': active === 0}">English</button>
+                <button class="tab-heading" x-on:click.prevent="active = 1" x-bind:class="{'bg-steel-500 text-white': active === 1}">Espagnol</button>
+                <button class="tab-heading" x-on:click.prevent="active = 2" x-bind:class="{'bg-steel-500 text-white': active === 2}">Français</button>
+            </div>
+            <!-- END TABS -->
+
+            <!-- START CONTENT -->
+            <div class="border border-steel-200 -mt-px">
+
+                <!-- START TAB - ENGLISH -->
+                <div class="p-4 space-y-2" x-show="active === 0"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform scale-90"
+                x-transition:enter-end="opacity-100 transform scale-100">
+
+                    {% if data.get_procedure_english %}
+
+                        <!-- START ACTIONS -->
+                        {% if request.user|has_group:'Workflow (BOM)' and data|editable %} 
+                            <div class="actions">
+                                <a class="action-link" href="{% url 'masterdata:billofmaterialsprocedure_edit' pk=data.get_procedure_english.id %}">
+                                    <i class="material-icons text-sm" style="position: relative; top: 0.1em;">edit</i>
+                                    <span class="action-link-text">Edit</span>
+                                </a>
+                                <a class="action-link" href="#" x-data @click="$dispatch('modal-confirm-delete', { open: true, objectid:'{{data.get_procedure_english.id}}', objecttype: 'procedure', displaytype: 'procedure (English)', parent: '{{data.product.name}}' })">
+                                    <i class="material-icons text-sm" style="position: relative; top: 0.2em;">delete</i>
+                                    <span class="action-link-text">Delete</span>
+                                </a>
+                            </div>
+                        {% endif %}
+                        <!-- END ACTIONS -->
+
+                        <div class="tab-content">{{data.get_procedure_english.procedure|safe}}</div>
+
+                    {% else %}
+
+                        <!-- START ACTIONS -->
+                        {% if request.user|has_group:'Workflow (BOM)' and data|editable %} 
+                            <div class="actions">
+                                <a class="action-link" href="{% url 'masterdata:billofmaterialsprocedure_add' pk=data.id language='eng' %}">
+                                    <i class="material-icons text-sm" style="position: relative; top: 0.15em;">add_circle_outline</i>
+                                    <span class="action-link-text">Add</span>
+                                </a>
+                            </div>
+                        {% endif %}
+                        <!-- END ACTIONS -->
+
+                        <span class="tab-content procedure">No procedure entered</span>
+
+                    {% endif %}
+
+                </div>
+                <!-- END TAB - ENGLISH -->
+
+                <!-- START TAB - ESPAGNOL -->
+                <div class="p-4 space-y-2" x-show="active === 1"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform scale-90"
+                x-transition:enter-end="opacity-100 transform scale-100">
+
+                    {% if data.get_procedure_espagnol %}
+
+                        <!-- START ACTIONS -->
+                        {% if request.user|has_group:'Workflow (BOM)' and data|editable %} 
+                        <div class="actions">
+                            <a class="action-link" href="{% url 'masterdata:billofmaterialsprocedure_edit' pk=data.get_procedure_espagnol.id %}">
+                                <i class="material-icons text-sm" style="position: relative; top: 0.1em;">edit</i>
+                                <span class="action-link-text">Editar</span>
+                            </a>
+                            <a class="action-link" href="#" x-data @click="$dispatch('modal-confirm-delete', { open: true, objectid:'{{data.get_procedure_espagnol.id}}', objecttype: 'procedure', displaytype: 'procedure (Spanish)', parent: '{{data.product.name}}' })">
+                                <i class="material-icons text-sm" style="position: relative; top: 0.2em;">delete</i>
+                                <span class="action-link-text">Suprimir</span>
+                            </a>
+                        </div>
+                        {% endif %} 
+                        <!-- END ACTIONS -->
+
+                        <span class="tab-content">{{data.get_procedure_espagnol.procedure|safe}}</span>
+
+                    {% else %}
+
+                        <!-- START ACTIONS -->
+                        {% if request.user|has_group:'Workflow (BOM)' and data|editable %} 
+                        <div class="actions">
+                            <a class="action-link" href="{% url 'masterdata:billofmaterialsprocedure_add' pk=data.id language='esp' %}">
+                                <i class="material-icons text-sm" style="position: relative; top: 0.15em;">add_circle_outline</i>
+                                <span class="action-link-text">Agregar traducción</span>
+                            </a>
+                        </div>
+                        {% endif %} 
+                        <!-- END ACTIONS -->
+
+                        <span class="tab-content">No hay traducción al espagñol disponible</span>
+
+                    {% endif %}
+                </div>
+                <!-- END TAB - ESPAGNOL -->
+
+                <!-- START TAB - FRANÇAIS -->
+                <div class="p-4 space-y-2" x-show="active === 2"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform scale-90"
+                x-transition:enter-end="opacity-100 transform scale-100">
+
+                    {% if data.get_procedure_francais %}
+
+                        <!-- START ACTIONS -->
+                        {% if request.user|has_group:'Workflow (BOM)' and data|editable %} 
+                        <div class="actions">
+                            <a class="action-link" href="{% url 'masterdata:billofmaterialsprocedure_edit' pk=data.get_procedure_francais.id %}">
+                                <i class="material-icons text-sm" style="position: relative; top: 0.1em;">edit</i>
+                                <span class="action-link-text">Modifier</span>
+                            </a>
+                            <a class="action-link" href="#" x-data @click="$dispatch('modal-confirm-delete', { open: true, objectid:'{{data.get_procedure_francais.id}}', objecttype: 'procedure', displaytype: 'procedure (French)', parent: '{{data.product.name}}' })">
+                                <i class="material-icons text-sm" style="position: relative; top: 0.2em;">delete</i>
+                                <span class="action-link-text">Supprimer</span>
+                            </a>
+                        </div>
+                        {% endif %}
+                        <!-- END ACTIONS -->
+
+                        <span class="tab-content">{{data.get_procedure_francais.procedure|safe}}</span>
+
+                    {% else %}
+
+
+                        <!-- START ACTIONS -->
+                        {% if request.user|has_group:'Workflow (BOM)' and data|editable %} 
+                        <div class="actions">
+                            <a class="action-link" href="{% url 'masterdata:billofmaterialsprocedure_add' pk=data.id language='fra' %}">
+                                <i class="material-icons text-sm" style="position: relative; top: 0.1em;">add_circle_outline</i>
+                                <span class="action-link-text">Ajouter</span>
+                            </a>
+                        </div>
+                        {% endif %}
+                        <!-- END ACTIONS -->
+
+                        <span class="tab-content">Pas de traduction disponible</span>
+
+                    {% endif %}
+
+                </div>
+                <!-- END TAB - FRANÇAIS -->
+
+            </div>
+            <!-- END CONTENT -->
+
+            {% include 'components/modal_confirm_delete.html' %}
+
+        </div>
+    </div>
+    <!-- END PROCEDURE TABS -->
+
+
+    <!-- START COSTING -->
+    <div class="card" x-data="{ modalcosttableopen : false, }">
+
+        <div class="card-heading mb-0">Costing</div>
+
+        <!-- START ACTIONS (SECTION) -->
+        <div class="actions">
+            {% if data.costs.exists %}
+                <a class="action-link" href="#" x-data @click="$dispatch('modal-cost-table', { open: true })" >
+            {% else %}
+                <a class="action-link text-gray-300" href="#" disabled>
+            {% endif %}
+                <i class="material-icons text-sm" style="position: relative; top: 0.2em;">backup_table</i>
+                <span class="action-link-text">View Details</span>
+            </a>
+
+            <a class="action-link text-gray-300" href="#" disabled>
+                <i class="material-icons text-sm" style="position: relative; top: 0.2em;">insights</i>
+                <span class="action-link-text">View History</span>
+            </a>
+        </div>
+        <!-- END ACTIONS (SECTION) -->
+
+        <div class="flex flex-col space-y-3">
+        {% if data.costs.latest %}
+            <div class="card-text">
+                ${{batch_cost}} per batch
+            </div>
+            <div class="card-text">
+                <span class="font-bold text-sm">Cost Driver(s)</span><br/>
+                {% for item in cost_drivers %}
+                    <a class="link" href="{% url 'masterdata:material_detail' pk=item.id %}">{{item.item}}</a> (${{item.extension}})<br/>
+                {% empty %}
+                    <span class="text-gray-500 italic">No cost drivers</span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card-text">No costing data available</div>
+        {% endif %}
+        </div>
+    </div>
+    <!-- END COSTING -->
+
+
+    <!-- START CHARACTERISTICS -->
+    <div class="card">
+
+        <div class="card-heading mb-0">Characteristics</div>
+
+        <!-- START ACTIONS (SECTION) -->
+        {% if request.user|has_group:'Workflow (BOM)' and data|editable %} 
+            <div class="actions">
+                <a class="action-link" href="{% url 'masterdata:billofmaterials_characteristics_edit' pk=data.characteristics.id %}">
+                    <i class="material-icons text-sm" style="position: relative; top: 0.1em;">edit</i>
+                    <span class="action-link-text">Edit</span>
+                </a>
+            </div>
+        {% else %}
+            <div class="actions"></div>
+        {% endif %}
+        <!-- END ACTIONS (SECTION) -->
+        
+        <!-- START PRODUCTION -->
+        <div class="card-item">
+            <div class="card-label">Lead Time</div>
+            <div class="card-text">{{data.characteristics.leadtime}} days</div>
+        </div>
+
+        <div class="details-three-column-grid">
+            <div class="details-grid-column">
+
+                <div class="mb-2 font-bold text-sm">Temperature</div>
+
+                <div class="card-item">
+                    <div class="card-label">Preparation</div>
+                    <div class="card-text">
+                        {{data.characteristics.get_temperature_preparation_display|default_if_none:"Not specified"}}
+                    </div>
+                </div>
+
+                <div class="card-item">
+                    <div class="card-label">Storage</div>
+                    <div class="card-text">
+                        {{data.characteristics.get_temperature_storage_display|default_if_none:"Not specified"}}
+                    </div>
+                </div>
+
+                <div class="card-item">
+                    <div class="card-label">Service</div>
+                    <div class="card-text">
+                        {{data.characteristics.get_temperature_service_display|default_if_none:"Not specified"}}
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="details-grid-column col-span-2">
+
+                <div class="mb-2 font-bold text-sm">Production Notes</div>
+
+                <div class="card-item">
+                    <div class="card-text Xprose">
+                        {{data.characteristics.note_production|default:"No notes entered"|safe}}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- END PRODUCTION -->
+
+        <!-- START LABOR -->
+        <div class="details-three-column-grid">
+            <div class="details-grid-column">
+
+                <div class="mb-2 font-bold text-sm">Labor Requirements</div>
+
+                <div class="card-item">
+                    <div class="card-label">Team</div>
+                    <div class="card-text">{{data.team}}</div>
+                </div>
+
+                <div class="card-item">
+                    <div class="card-label">Active Time Required</div>
+                    {% if data.characteristics.total_active_time %}  
+                        <div class="card-text">{{data.characteristics.total_active_time}} hours</div>
+                    {% else %}
+                        <div class='card-text'>Not specified</div>
+                    {% endif %}
+                </div>
+
+                <div class="card-item">
+                    <div class="card-label">Inactive Time Required</div>
+                    {% if data.characteristics.total_inactive_time %}  
+                        <div class="card-text">{{data.characteristics.total_inactive_time}} hours</div>
+                    {% else %}
+                        <div class='card-text'>Not specified</div>
+                    {% endif %}
+                </div>
+
+                <div class="card-item">
+                    <div class="card-label">Staff Required</div>
+                    {% if data.characteristics.staff_count == 0 %}
+                        <div class='card-text'>Not specified</div>
+                    {% elif data.characteristics.staff_count == 1%}
+                        <div class="card-text">{{data.characteristics.staff_count}} person</div>
+                    {% else %}
+                        <div class="card-text">{{data.characteristics.staff_count}} people</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="details-grid-column col-span-2">
+                <div class="mb-2 font-bold text-sm">Labor Notes</div>
+                <div class="card-text Xprose">
+                    {{data.characteristics.note_labor|default:"No notes entered"|safe}}
+                </div>
+            </div>
+        </div>
+        <!-- END LABOR -->
+
+    </div>
+    <!-- END CHARACTERISTICS -->
+
+
+    <!-- START NOTES -->
+    <div class="card">
+
+        <div class="card-heading mb-0">Notes</div>
+
+        <!-- START ACTIONS (SECTION) -->
+        {% if request.user|has_group:'Workflow (BOM)' and data|editable %} 
+        <div class="actions">
+            {% if data.note %}
+                <a class="action-link" href="{% url 'masterdata:billofmaterials_note_edit' pk=data.note.id %}">
+                    <i class="material-icons text-sm" style="position: relative; top: 0.1em;">edit</i>
+                    <span class="action-link-text">Edit</span>
+                </a>
+                <a class="text-steel-500" href="#" x-data @click="$dispatch('modal-confirm-delete', { open: true, objectid:'{{data.note.id}}', objecttype: 'note', displaytype: 'note', parent: '' })">
+                    <i class="material-icons text-sm" style="position: relative; top: 0.2em;">delete</i>
+                    <span class="action-link-text">Delete</span>
+                </a>
+            {% else %}
+                <a class="action-link" href="{% url 'masterdata:billofmaterials_note_add' pk=data.id %}">
+                    <i class="material-icons text-sm" style="position: relative; top: 0.2em;">add_circle_outline</i>
+                    <span class="action-link-text">Add</span>
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+        <!-- END ACTIONS (SECTION) -->
+
+        <div class="card-text Xprose">
+            {% if data.note %}
+                {{data.note.note|safe}}
+            {% else %}
+                No notes entered
+            {% endif %}
+        </div>
+
+    </div>
+    <!-- END NOTES -->
+
+    {% include 'modal_costing_table.html' %}
+    
+
+</div>
+<!-- END VISIBLE CONTENT -->
+
+
+<script type="text/javascript" src="{% static 'js/jquery-3.5.1.min.js' %}" ></script> 
+<script type="text/javascript" src="{% static 'js/select2.min.js' %}" ></script>
+<script type="text/javascript" src="{% static 'django_select2/django_select2.js' %}" ></script> 
+
+<script type="text/javascript">
+$(document).ready(function() {
+    var delayInMilliseconds = 2500; //1 second
+
+    setTimeout(function() {
+        // code to be executed after delayInMilliseconds
+        $('.django-select2').select2({placeholder: 'Select...'});
+    }, delayInMilliseconds);
+  });
+</script>
+
+ <script type="text/javascript">
+    $("#limiting-material").change(function () {
+      var url = $("#scaling_form").attr("data-material-units-url");
+      var itemId = $(this).val();
+
+      $.ajax({ 
+        url: url,
+        data: {
+            'item': itemId 
+        },
+        success: function (data) {
+            $("#limiting-unit").html(data);
+        }
+      });
+
+    });
+  </script>
+
+
+{% endblock %}

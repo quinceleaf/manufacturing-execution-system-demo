@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block body_block %}
+{% load static editable get_verbose_choice has_group %}
+
+<title>{{data.name}}</title>
+
+<!-- START VISIBLE CONTENT -->
+<div x-data="{ modalconfirmdeleteopen: false }">
+
+    {% include "components/top_panel_detail.html" %}
+
+    <!-- START FIELDS -->
+    <div class="card">
+
+            <!-- START FIELDS -->
+            {% for field in form %}
+                <div class="card-item">
+                    <div class="card-label">{{field.label}}</div>
+                    <div class="card-text">
+                        {% get_verbose_choice data field.name %}
+                    </div>
+                </div>
+            {% endfor %}
+            <!-- END FIELDS -->
+
+    </div>
+    <!-- END FIELDS -->
+
+    <!-- START CHARACTERISTICS -->
+    <div class="card">
+
+        <div class="card-heading">Characteristics</div>
+
+        <div class="card-item">
+            <div class="card-label">Current Assigned Cost</div>
+            <div class="card-text">
+                $ {{data.get_assigned_cost}} per 
+                
+                {{data.costs}}
+            </div>
+        </div>
+
+
+        {% for item in related_data %}
+        <div class="card-item">
+            <div class="card-label">{{item.label}}</div>
+            <div class="card-text">
+                {{item.value}}
+            </div>
+        </div>
+        {% endfor %}
+
+    </div>
+    <!-- END CHARACTERISTICS -->
+
+    <!-- START COSTS -->
+    <div class="card">
+
+        <div class="card-heading mb-0">Costs</div>
+
+        <!-- START ACTIONS (SECTION) -->
+        {% if request.user|has_group:'Workflow (BOM)' %} 
+            <div class="actions">
+                {% if data.costs.count == 0 %}
+                    <a class="action-link" href="{% url 'masterdata:materialcost_add' pk=data.id %}">
+                        <i class="material-icons text-sm" style="position: relative; top: 0.2em;">add_circle_outline</i>
+                        <span class="action-link-text">Add</span>
+                    </a>
+                {% else %}
+                    <a class="action-link" href="{% url 'masterdata:materialcost_add' pk=data.id %}">
+                        <i class="material-icons text-sm" style="position: relative; top: 0.1em;">edit</i>
+                        <span class="action-link-text">Edit</span>
+                    </a>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="actions"></div>
+        {% endif %}
+        <!-- END ACTIONS (SECTION) -->
+
+
+
+
+        <div class="card-item">
+            <div class="card-label">Current Assigned Cost</div>
+            <div class="card-text">
+                {{data.get_assigned_cost}}
+            </div>
+        </div>
+
+    </div>
+    <!-- END COSTS -->
+
+    <!-- START INPUTS -->
+    <div class="card">
+
+        <div class="card-heading">Inputs</div>
+
+        <div class="card-text grid md:grid-cols-3 grid-cols-1 card-item ">
+
+            <!-- START GRID HEADING -->
+            <div class="grid-heading">Input</div>
+            <div class="grid-heading">Available from</div>
+            <div class="grid-heading">Date last ordered</div>
+            <!-- END GRID HEADING -->
+
+            <!-- START GRID DATA -->
+
+            {% for input in data.inputs.all %}
+                <div class="grid-element">
+                    <a class="link" href="{{input.get_absolute_url}}">{{input}}</a>
+                </div>
+                <div class="grid-element" >
+                    {% for catalog in input.catalogs.all %}
+                        {% if forloop.last %}
+                        <a href="{% url 'purchasing:vendorcatalog_edit' pk=catalog.id %}" class="link">
+                            {{catalog.vendor}}
+                        </a>
+                        {% else %}
+                        <a href="{% url 'purchasing:vendorcatalog_edit' pk=catalog.id %}" class="link">
+                            {{catalog.vendor}}
+                        </a></br>
+                        {% endif %}
+                    {% empty %}
+                        No vendors entered
+                    {% endfor %}
+                </div>
+                <div class="grid-element">
+                    {{input.get_last_order.date}} ({{input.get_last_order.vendor}})
+                </div>
+            {% empty %}
+                <div class="grid-element col-span-3">
+                    No inputs entered
+                </div>
+            {% endfor %}
+            <!-- END GRID DATA -->
+        </div>
+
+    </div>
+    <!-- END INPUTS -->
+
+</div>
+<!-- END VISIBLE CONTENT -->
+
+{% include "components/modal_confirm_delete.html" %}
+
+{% endblock %}

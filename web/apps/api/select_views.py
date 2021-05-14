@@ -42,6 +42,20 @@ from apps.masterdata import models as masterdata_models
 # MASTERDATA MODELS
 
 
+class BillOfMaterialsLineSelectAPIView(generics.ListAPIView):
+    queryset = masterdata_models.BillOfMaterialsLine.objects.all()
+    serializer_class = api_serializers.BillOfMaterialsLineSelectSerializer
+
+    def get(self, request, format=None):
+        qs = masterdata_models.BillOfMaterialsLine.objects.all()
+        search_term = self.request.query_params.get("q", None)
+        if search_term is not None:
+            qs = qs.filter(name__icontains=search_term)
+
+        serializer_data = self.serializer_class(qs, many=True).data
+        return JsonResponse({"results": serializer_data}, safe=False)
+
+
 class ItemSelectAPIView(generics.ListAPIView):
     queryset = masterdata_models.Item.objects.all()
     serializer_class = api_serializers.ItemSelectSerializer

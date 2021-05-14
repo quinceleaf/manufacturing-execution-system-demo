@@ -60,7 +60,7 @@ def admin_link(attr, short_description, empty_description="-"):
     return wrap
 
 
-class BaseAdminConfig(admin.ModelAdmin):
+class BaseAdminConfig(admin.ModelAdmin, models.ExportCsvMixin):
 
     readonly_fieldsets = (
         (
@@ -69,6 +69,7 @@ class BaseAdminConfig(admin.ModelAdmin):
         ),
     )
 
+    actions = ["export_as_csv"]
     list_display = ("__str__",)
     list_display_links = ("__str__",)
     list_per_page = 25
@@ -77,12 +78,13 @@ class BaseAdminConfig(admin.ModelAdmin):
     sortable_by = ("__str__",)
 
 
-class ImmutableAdminConfig(admin.ModelAdmin):
+class ImmutableAdminConfig(admin.ModelAdmin, models.ExportCsvMixin):
 
     readonly_fieldsets = (
         ("ID/Timestamps", {"classes": ("collapse",), "fields": ("id", "created_at")}),
     )
 
+    actions = ["export_as_csv"]
     list_display = ("__str__",)
     list_display_links = ("__str__",)
     list_per_page = 25
@@ -95,24 +97,51 @@ class ItemAsMaterialFilter(AutocompleteFilter):
     title = "Material"
     field_name = "item"
 
-    def get_autocomplete_url(self, request, model_admin):
-        return reverse("admin:material_filter")
+    # def get_autocomplete_url(self, request, model_admin):
+    #     return reverse("admin:material_filter")
 
 
 class ItemAsProductFilter(AutocompleteFilter):
     title = "Product"
     field_name = "item"
 
-    def get_autocomplete_url(self, request, model_admin):
-        return reverse("admin:product_filter")
+    # def get_autocomplete_url(self, request, model_admin):
+    #     return reverse("admin:product_filter")
+
+
+class ManufacturerFilter(AutocompleteFilter):
+    title = "Manufacturer"
+    field_name = "manufacturer"
+
+    # def get_autocomplete_url(self, request, model_admin):
+    #     return reverse("admin:manufacturer_filter")
 
 
 class MaterialFilter(AutocompleteFilter):
     title = "Material"
-    field_name = "material"
+    field_name = "item"
 
-    def get_autocomplete_url(self, request, model_admin):
-        return reverse("admin:material_filter")
+
+class MaterialasItemFilter(AutocompleteFilter):
+    title = "Material"
+    field_name = "item"
+
+    # def get_autocomplete_url(self, request, model_admin):
+    #     return reverse("admin:material_filter")
+
+    # def get_queryset(self):
+    #     MATERIAL_VALID_CATEGORIES = [
+    #         "RAW",
+    #         "PREPARED",
+    #         "SERVICE",
+    #         "MRO",
+    #         "PACKAGING",
+    #         "OTHER",
+    #     ]
+    #     queryset = masterdata_models.Item.objects.filter(
+    #         category__in=MATERIAL_VALID_CATEGORIES
+    #     )
+    #     return queryset
 
 
 class ProductFilter(AutocompleteFilter):
@@ -124,9 +153,9 @@ class FinishedProductFilter(AutocompleteFilter):
     title = "Product"
     field_name = "item"
 
-    def get_queryset(self):
-        queryset = masterdata_models.Product.objects.filter(category="FINISHED")
-        return queryset
+    # def get_queryset(self):
+    #     queryset = masterdata_models.Product.objects.filter(category="FINISHED")
+    #     return queryset
 
 
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––

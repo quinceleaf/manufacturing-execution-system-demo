@@ -1,0 +1,30 @@
+    <!-- START BILLS OF MATERIALS -->
+    <div class="card">
+
+        <div class="card-section-block">
+            <div class="card-heading">Bill of Materials</div>
+
+            <!-- START ACTIONS -->
+            <div class="action">
+                {% if data.bills_of_materials.count == 0 %}
+                    <a class="action-link" href="{% url 'masterdata:billofmaterials_wizard' pk=data.id %}">
+                        <i class="material-icons text-sm" style="position: relative; top: 0.2em;">add_circle_outline</i>
+                        <span class="action-text">Add</span>
+                    </a>
+                {% endif %}
+            </div>
+            <!-- END ACTIONS -->
+        </div>
+
+        <div class="card-text">
+            {% if data.bill_of_materials %}
+                <a class="link" href="{% url 'masterdata:billofmaterials_detail' pk=data.bill_of_materials.id %}">
+                    {{data.name}}, v.{{data.version}}
+                </a>
+            {% else %}
+                Bill of materials not entered
+            {% endif %}
+        </div>
+
+    </div>
+    <!-- END BILLS OF MATERIALS -->

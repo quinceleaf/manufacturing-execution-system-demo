@@ -2,6 +2,114 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tailwind components */
+
+@layer components {
+  .actions {
+    @apply flex md:flex-row flex-col md:mb-5 mb-3 text-xs md:space-x-2 space-x-0;
+  }
+
+  .actions.subsection {
+    @apply mb-0;
+  }
+
+  .action-link {
+    @apply text-steel-500;
+  }
+
+  .action-link-text {
+    @apply text-xs hover:underline;
+  }
+
+  .card {
+    @apply mt-3 p-4 w-full border border-gray-300 bg-white;
+  }
+
+  .card-heading {
+    @apply font-bold mt-2 md:mb-5 mb-3;
+  }
+
+  .card-label {
+    @apply text-xs text-gray-300;
+  }
+
+  .card-section-block {
+    @apply flex flex-row items-center space-x-2;
+  }
+
+  .card-subsection {
+    @apply flex flex-row mt-5 mr-2 md:mb-2 mb-0 pb-1 space-x-2 md:border-b border-0 md:border-steel-100;
+  }
+
+  .card-item {
+    @apply md:mb-5 mb-3;
+  }
+
+  .card-text {
+    @apply text-sm;
+  }
+
+  .grid-heading {
+    @apply p-2 font-bold text-xs;
+  }
+
+  .grid-element {
+    @apply p-2 text-sm border-t border-steel-100;
+  }
+
+  .details-three-column-grid {
+    @apply md:mt-5 mt-3 grid md:grid-cols-3 grid-cols-1 gap-3;
+  }
+
+  .details-two-column-grid {
+    @apply md:mt-5 mt-3 grid md:grid-cols-2 grid-cols-1 gap-3;
+  }
+
+  .details-grid-column {
+    @apply p-0 md:mt-0 mt-3 md:w-1/2 w-full;
+  }
+
+  .input-field {
+    @apply appearance-none rounded-none relative block w-full px-3 py-2 text-xs placeholder-gray-300 text-gray-500 border border-gray-300 focus:outline-none focus:ring focus:ring-steel-300 focus:z-10;
+  }
+
+  .input-checkbox {
+    @apply focus:ring-steel-300 focus:border-steel-300 text-base border-gray-300;
+  }
+
+  .input-label {
+    @apply mb-2 text-xs text-gray-500;
+  }
+
+  .input-errors {
+    @apply text-xs text-red-700;
+  }
+
+  .page-heading {
+    @apply font-bold text-2xl;
+  }
+
+  .link {
+    @apply text-steel-500 hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-steel-300;
+  }
+
+  .button-basic {
+    @apply py-2 px-4 text-sm font-medium text-white rounded-md bg-steel-600 border border-transparent hover:bg-steel-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-steel-300;
+  }
+
+  .button-input-height {
+    @apply py-1 px-2 text-xs text-white h-8 rounded-md bg-steel-600 border border-transparent hover:bg-steel-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-steel-300;
+  }
+
+  .tab-content {
+    @apply text-sm;
+  }
+
+  .tab-heading {
+    @apply px-4 py-1 w-full text-xs;
+  }
+}
+
 /* Your custom styles go here */
 
 html {
@@ -10,6 +118,17 @@ html {
 
 body {
   font-family: "Inter", sans-serif;
+}
+
+p .procedure {
+  line-height: 1.5rem;
+}
+
+ul,
+li .procedure {
+  list-style-type: disc;
+  margin-bottom: 1rem;
+  padding-left: 1rem;
 }
 
 /* COLOR THEME */

@@ -15,8 +15,8 @@ class MaterialFilter(django_filters.FilterSet):
             "name",
             "category",
             "unit_type",
-            "state",
             "notes",
+            "is_available",
         )
 
 
@@ -50,8 +50,8 @@ class ProductFilter(django_filters.FilterSet):
             "name",
             "category",
             "unit_type",
-            "state",
             "notes",
+            "is_available",
         )
 
 

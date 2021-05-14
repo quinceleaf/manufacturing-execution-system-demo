@@ -15,10 +15,14 @@
 # TODO: product_calculate_cost_ma7()
 # TODO: product_calculate_cost_naive()
 
-
+# --- DJANGO IMPORTS
 from django.db.models import Model, QuerySet
 from django.http import HttpResponse
+from django.template.loader import get_template, render_to_string
+from django.utils import timezone
 
+
+# --- PYTHON UTILITY IMPORTS
 from collections import deque
 import csv
 import datetime
@@ -26,21 +30,34 @@ import datetime as dt
 import decimal
 from decimal import Decimal as D
 import json
+import math
+import re
+from tempfile import NamedTemporaryFile
+from typing import Tuple
+
+
+# --- THIRD-PARTY IMPORTS
 from openpyxl import load_workbook, Workbook
 from openpyxl.utils import absolute_coordinate, quote_sheetname
 from openpyxl.worksheet.cell_range import CellRange
 from openpyxl.worksheet.datavalidation import DataValidation
-from tempfile import NamedTemporaryFile
-from typing import Tuple
+import pytz
+from weasyprint import HTML, CSS
+from weasyprint.fonts import FontConfiguration
 
+
+# --- APPLICATION IMPORTS
 from apps.masterdata import models, selectors
 from apps.common.converters import DecimalEncoder
-from apps.common.services import clone_object_instance
+from apps.common import services as common_services
 
+
+# --- PARAMETERS
+EASTERN_TZ = pytz.timezone("US/Eastern")
 
 
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
-# CONVERSION
+# UNITS OF MEASUREMENT
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
 
@@ -265,6 +282,1097 @@ def adjust_units_for_display(quantity, unit):
 
     return round(current_quantity, 3), current_unit
 
+
+# –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+# BILL OF MATERIALS
+# –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+
+
+def bill_of_materials_create(
+    *, product: models.Product, team: models.Team
+) -> models.BillOfMaterials:
+    bill_of_materials = models.BillOfMaterials(product=product, team=team)
+    bill_of_materials.full_clean()
+    bill_of_materials.save()
+
+    return bill_of_materials
+
+
+def bill_of_materials_characteristics_create(
+    *,
+    leadtime: int = None,
+    temperature_preparation: str = None,
+    temperature_storage: str = None,
+    temperature_service: str = None,
+    note_production: str = None,
+    total_active_time: decimal.Decimal = D(0),
+    total_inactive_time: decimal.Decimal = D(0),
+    staff_count: int = 0,
+    note_labor: str = None,
+    bill_of_materials: models.BillOfMaterials,
+) -> models.BillOfMaterialsCharacteristics:
+    characteristics = models.BillOfMaterialsCharacteristics(
+        leadtime=leadtime,
+        temperature_preparation=temperature_preparation,
+        temperature_storage=temperature_storage,
+        temperature_service=temperature_service,
+        note_production=note_production,
+        total_active_time=total_active_time,
+        total_inactive_time=total_inactive_time,
+        staff_count=staff_count,
+        note_labor=note_labor,
+        bill_of_materials=bill_of_materials,
+    )
+    characteristics.full_clean()
+    characteristics.save()
+
+    return characteristics
+
+
+def bill_of_materials_line_create(
+    *,
+    sequence: int,
+    quantity: decimal.Decimal,
+    quantity_standard: decimal.Decimal = D(0),
+    note: str = None,
+    bill_of_materials: models.BillOfMaterials,
+    item: models.Item,
+    unit: models.UnitMeasurement,
+    unit_standard: models.UnitMeasurement = None,
+) -> models.BillOfMaterialsLine:
+
+    quantity_standard, unit_standard = standardize_units(quantity=quantity, unit=unit)
+
+    line = models.BillOfMaterialsLine(
+        sequence=sequence,
+        quantity=quantity,
+        quantity_standard=quantity_standard,
+        unit=unit,
+        unit_standard=unit_standard,
+        item=item,
+        note=note,
+        bill_of_materials=bill_of_materials,
+    )
+    line.full_clean()
+    line.save()
+
+    return line
+
+
+def bill_of_materials_line_update(
+    *, bill_of_materials_line_id: str, data
+) -> models.BillOfMaterialsLine:
+
+    # TODO: Check permissions
+
+    line = selectors.bill_of_materials_line_detail(
+        bill_of_materials_line_id=bill_of_materials_line_id
+    )
+
+    valid_fields = ["sequence", "quantity", "note", "unit", "item"]
+
+    for field in valid_fields:
+        if field in data:
+            setattr(some_object, field, data[field])
+
+    if data["quantity"] and data["unit"]:
+        data["quantity_standard"], data["unit_standard"] = standardize_units(
+            quantity=data["quantity"], unit=data["unit"]
+        )
+
+    line.full_clean()
+    line.save()
+
+    return line
+
+
+def bill_of_materials_line_update_standardize(
+    *,
+    bill_of_materials_line: models.BillOfMaterialsLine,
+    quantity: decimal.Decimal,
+    unit: models.UnitMeasurement,
+) -> models.BillOfMaterialsLine:
+
+    # TODO: Check permissions
+
+    # line = selectors.bill_of_materials_line_detail(
+    #     bill_of_materials_line_id=bill_of_materials_line_id
+    # )
+
+    if quantity and unit:
+        quantity_standard, unit_standard = standardize_units(
+            quantity=quantity, unit=unit
+        )
+
+    bill_of_materials_line.quantity_standard = quantity_standard
+    bill_of_materials_line.unit_standard = unit_standard
+
+    bill_of_materials_line.full_clean()
+    bill_of_materials_line.save()
+
+    return bill_of_materials_line
+
+
+def bill_of_materials_note_create(
+    *, note: str, bill_of_materials: models.BillOfMaterials
+) -> models.BillOfMaterialsNote:
+    bill_of_materials_note = models.BillOfMaterialsNote(
+        note=note, bill_of_materials=bill_of_materials
+    )
+    bill_of_materials_note.full_clean()
+    bill_of_materials_note.save()
+
+    return bill_of_materials_note
+
+
+def bill_of_materials_note_update(
+    *, bill_of_materials_note_id: str, data
+) -> models.BillOfMaterialsNote:
+
+    # TODO: Check permissions
+
+    bill_of_materials_note = selectors.bill_of_materials_note_detail(
+        bill_of_materials_note_id=bill_of_materials_note_id
+    )
+
+    valid_fields = [
+        "note",
+    ]
+
+    for field in valid_fields:
+        if field in data:
+            setattr(some_object, field, data[field])
+
+    bill_of_materials_note.full_clean()
+    bill_of_materials_note.save()
+
+    return line
+
+
+def bill_of_materials_procedure_create(
+    *, language: str, procedure: str, bill_of_materials: models.BillOfMaterials
+) -> models.BillOfMaterialsProcedure:
+    bill_of_materials_procedure = models.BillOfMaterialsProcedure(
+        language=language,
+        procedure=procedure,
+        bill_of_materials=bill_of_materials,
+    )
+    bill_of_materials_procedure.full_clean()
+    bill_of_materials_procedure.save()
+
+    return bill_of_materials_procedure
+
+
+def bill_of_materials_procedure_update(
+    *, bill_of_materials_procedure_id: str, data
+) -> models.BillOfMaterialsProcedure:
+
+    # TODO: Check permissions
+
+    bill_of_materials_procedure = selectors.bill_of_materials_procedure_detail(
+        bill_of_materials_procedure_id=bill_of_materials_procedure_id
+    )
+
+    valid_fields = ["language", "procedure"]
+
+    for field in valid_fields:
+        if field in data:
+            setattr(some_object, field, data[field])
+
+    bill_of_materials_procedure.full_clean()
+    bill_of_materials_procedure.save()
+
+    return bill_of_materials_procedure
+
+
+def bill_of_materials_resource_create(
+    *,
+    sequence: int,
+    capacity_required: decimal.Decimal,
+    changeover_required: decimal.Decimal = D(0),
+    resource: models.Resource,
+    note: str,
+    bill_of_materials: models.BillOfMaterials,
+) -> models.BillOfMaterialsResource:
+    bill_of_materials_resource = models.BillOfMaterialsResource(
+        sequence=sequence,
+        capacity_required=capacity_required,
+        changeover_required=changeover_required,
+        resource=resource,
+        note=note,
+        bill_of_materials=bill_of_materials,
+    )
+    bill_of_materials_resource.full_clean()
+    bill_of_materials_resource.save()
+
+    return bill_of_materials_resource
+
+
+def bill_of_materials_resource_update(
+    *, bill_of_materials_resource_id: str, data
+) -> models.BillOfMaterialsResource:
+
+    # TODO: Check permissions
+
+    bill_of_materials_resource = selectors.bill_of_materials_resource_detail(
+        bill_of_materials_resource_id=bill_of_materials_resource_id
+    )
+
+    valid_fields = [
+        "sequence",
+        "capacity_required",
+        "changeover_required",
+        "note",
+        "resource",
+    ]
+
+    for field in valid_fields:
+        if field in data:
+            setattr(some_object, field, data[field])
+
+    bill_of_materials_resource.full_clean()
+    bill_of_materials_resource.save()
+
+    return bill_of_materials_resource
+
+
+def bill_of_materials_yield_create(
+    *,
+    quantity_weight: decimal.Decimal = None,
+    unit_weight: models.UnitMeasurement = None,
+    quantity_weight_standard: decimal.Decimal = None,
+    unit_weight_standard: models.UnitMeasurement = None,
+    quantity_volume: decimal.Decimal = None,
+    unit_volume: models.UnitMeasurement = None,
+    quantity_volume_standard: decimal.Decimal = None,
+    unit_volume_standard: models.UnitMeasurement = None,
+    quantity_each: decimal.Decimal = None,
+    note_each: str = None,
+    unit_each: models.UnitMeasurement = None,
+    scale_multiple_smallest: decimal.Decimal = None,
+    scale_multiple_largest: decimal.Decimal = None,
+    bill_of_materials: models.BillOfMaterials,
+) -> models.BillOfMaterialsYield:
+
+    if quantity_weight and unit_weight:
+        quantity_weight_standard, unit_weight_standard = standardize_units(
+            quantity=quantity_weight, unit=unit_weight
+        )
+
+    if quantity_volume and unit_volume:
+        quantity_volume_standard, unit_volume_standard = standardize_units(
+            quantity=quantity_volume, unit=unit_volume
+        )
+
+    yields = models.BillOfMaterialsYield(
+        quantity_weight=quantity_weight,
+        unit_weight=unit_weight,
+        quantity_volume=quantity_volume,
+        unit_volume=unit_volume,
+        quantity_each=quantity_each,
+        unit_each=unit_each,
+        note_each=note_each,
+        scale_multiple_smallest=scale_multiple_smallest,
+        scale_multiple_largest=scale_multiple_largest,
+        bill_of_materials=bill_of_materials,
+    )
+    yields.full_clean()
+    yields.save()
+
+    return yields
+
+
+def bill_of_materials_yield_update(
+    *, bill_of_materials_yield_id: str, data
+) -> models.BillOfMaterialsYield:
+
+    # TODO: Check permissions
+
+    yields = selectors.bill_of_materials_yield_detail(
+        bill_of_materials_yield_id=bill_of_materials_yield_id
+    )
+
+    valid_fields = [
+        "quantity_weight",
+        "unit_weight",
+        "quantity_volume",
+        "unit_volume",
+        "quantity_each",
+        "note_each",
+        "unit_each",
+        "scale_multiple_smallest",
+        "scale_multiple_largest",
+    ]
+
+    for field in valid_fields:
+        if field in data:
+            setattr(some_object, field, data[field])
+
+    if data["quantity_weight"] and data["unit_weight"]:
+        quantity_weight_standard, unit_weight_standard = standardize_units(
+            quantity=data["quantity_weight"], unit=data["unit_weight"]
+        )
+
+    if data["quantity_volume"] and data["unit_volume"]:
+        quantity_volume_standard, unit_volume_standard = standardize_units(
+            quantity=data["quantity_volume"], unit=data["unit_volume"]
+        )
+
+    yields.full_clean()
+    yields.save()
+
+    return yields
+
+
+def calculate_scaling_factor_for_bom(*, bom_line: models.BillOfMaterialsLine) -> D:
+
+    # TODO: Standardize unit/quantity
+    if bom_line.unit.unit_type == "WEIGHT":
+        line_base_yield_quantity = (
+            bom_line.item.get_bill_of_materials().yields.quantity_weight
+        )
+        line_base_yield_unit = bom_line.item.get_bill_of_materials().yields.unit_weight
+
+    elif bom_line.unit.unit_type == "VOLUME":
+        line_base_yield_quantity = (
+            bom_line.item.get_bill_of_materials().yields.quantity_volume
+        )
+        line_base_yield_unit = bom_line.item.get_bill_of_materials().yields.unit_volume
+    else:
+        line_base_yield_quantity = (
+            bom_line.item.get_bill_of_materials().yields.quantity_each
+        )
+        line_base_yield_unit = bom_line.item.get_bill_of_materials().yields.unit_each
+
+    (standardized_base_quantity, standardized_base_unit) = standardize_units(
+        quantity=line_base_yield_quantity, unit=line_base_yield_unit
+    )
+    (standardized_parent_quantity, standardized_parent_unit) = standardize_units(
+        quantity=bom_line.quantity, unit=bom_line.unit
+    )
+
+    return standardized_parent_quantity / standardized_base_quantity
+
+
+def scale_bom_lines_by_scaling_factor(lines, scaling_factor):
+    """ Scale BOM line items by scaling factor """
+
+    from apps.masterdata.services import adjust_units_for_display
+
+    scaled_lines = []
+
+    for line in lines:
+
+        scaled_quantity = line.quantity * D(scaling_factor)
+
+        display_quantity, display_unit = adjust_units_for_display(
+            scaled_quantity, line.unit
+        )
+
+        scaled_lines.append(
+            {
+                "sequence": line.sequence,
+                "quantity": display_quantity,
+                "unit": display_unit,
+                "item": line.item,
+                "note": line.note,
+            }
+        )
+
+    return scaled_lines
+
+
+def scale_bom_resources_by_scaling_factor(resources, scaling_factor):
+    """ Scale BOM resources required by scaling factor """
+
+    scaled_resources = []
+
+    for resource in resources:
+
+        scaled_capacity_required = math.ceil(
+            resource.capacity_required * D(scaling_factor)
+        )
+
+        scaled_resources.append(
+            {
+                "sequence": resource.sequence,
+                "capacity_required": scaled_capacity_required,
+                "resource": resource.resource,
+                "note": resource.note,
+            }
+        )
+
+    return scaled_resources
+
+
+def scale_bom_yields_by_scaling_factor(yields, scaling_factor):
+    """ Scale BOM yields by scaling factor """
+
+    from apps.masterdata.services import adjust_units_for_display
+
+    scaled_yield = {
+        "quantity_weight": None,
+        "unit_weight": None,
+        "quantity_volume": None,
+        "unit_volume": None,
+        "quantity_each": None,
+        "unit_each": None,
+        "note_each": None,
+    }
+
+    if yields.quantity_weight and yields.unit_weight:
+        scaled_quantity = yields.quantity_weight * D(scaling_factor)
+        display_quantity, display_unit = adjust_units_for_display(
+            scaled_quantity, yields.unit_weight
+        )
+        scaled_yield["quantity_weight"] = display_quantity
+        scaled_yield["unit_weight"] = display_unit
+
+    if yields.quantity_volume and yields.unit_volume:
+        scaled_quantity = yields.quantity_volume * D(scaling_factor)
+        display_quantity, display_unit = adjust_units_for_display(
+            scaled_quantity, yields.unit_volume
+        )
+        scaled_yield["quantity_volume"] = display_quantity
+        scaled_yield["unit_volume"] = display_unit
+
+    if all(
+        [
+            yields.quantity_each,
+            yields.unit_each,
+            yields.note_each,
+        ]
+    ):
+        scaled_quantity = yields.quantity_each * D(scaling_factor)
+        scaled_yield["quantity_each"] = scaled_quantity
+        scaled_yield["unit_each"] = yields.unit_each
+        scaled_yield["note_each"] = yields.note_each
+
+    return scaled_yield
+
+
+def scale_bill_of_materials_by_multiple(
+    bill_of_materials,
+    scaling_factor,
+):
+    """ Accepts BOM and scaling factor, returns scaled materials and yields for displaying/printing/exporting scaled BOM """
+
+    from apps.masterdata.services import (
+        adjust_units_for_display,
+        scale_bom_lines_by_scaling_factor,
+        scale_bom_resources_by_scaling_factor,
+        scale_bom_yields_by_scaling_factor,
+    )
+
+    """ use user-specified scaling_factor to adjust lines, resources & yields """
+
+    scaled_lines = scale_bom_lines_by_scaling_factor(
+        bill_of_materials.lines.all(), scaling_factor
+    )
+    scaled_resources = scale_bom_resources_by_scaling_factor(
+        bill_of_materials.resource_requirements.all(), scaling_factor
+    )
+    scaled_yields = scale_bom_yields_by_scaling_factor(
+        bill_of_materials.yields, scaling_factor
+    )
+
+    return scaled_lines, scaled_resources, scaled_yields
+
+
+def scale_bill_of_materials_by_yield(
+    bill_of_materials,
+    desired_quantity,
+    desired_unit,
+    # yield_unit_type,
+):
+    """Accepts BOM and parameters of desired yield, calculates scaling factor from these, and
+    returns scaled materials and yields for displaying/printing/exporting scaled BOM"""
+
+    from apps.masterdata.services import (
+        adjust_units_for_display,
+        convert_units,
+        scale_bom_lines_by_scaling_factor,
+        scale_bom_resources_by_scaling_factor,
+        scale_bom_yields_by_scaling_factor,
+    )
+
+    """ calculate scaling factor """
+    yield_unit_type = desired_unit.unit_type
+    yield_unit_type_property_quantity = f"quantity_{yield_unit_type.lower()}"
+    batch_yield_quantity = getattr(
+        bill_of_materials.yields, yield_unit_type_property_quantity
+    )
+
+    yield_unit_type_property_unit = f"unit_{yield_unit_type.lower()}"
+    batch_yield_unit = getattr(bill_of_materials.yields, yield_unit_type_property_unit)
+
+    if yield_unit_type == "EACH":
+        scaling_factor = desired_quantity / batch_yield_quantity
+    else:
+        standardized_batch_yield_quantity = convert_units(
+            D(batch_yield_quantity),
+            batch_yield_unit.symbol,
+            STANDARD_UNITS[yield_unit_type],
+        )
+        standardized_desired_yield_quantity = convert_units(
+            D(desired_quantity),
+            desired_unit.symbol,
+            STANDARD_UNITS[yield_unit_type],
+        )
+        scaling_factor = (
+            standardized_desired_yield_quantity / standardized_batch_yield_quantity
+        )
+
+    """ use calculated scaling_factor to adjust lines, resources & yields """
+
+    scaled_lines = scale_bom_lines_by_scaling_factor(
+        bill_of_materials.lines.all(), scaling_factor
+    )
+    scaled_resources = scale_bom_resources_by_scaling_factor(
+        bill_of_materials.resource_requirements.all(), scaling_factor
+    )
+    scaled_yields = scale_bom_yields_by_scaling_factor(
+        bill_of_materials.yields, scaling_factor
+    )
+
+    return scaled_lines, scaled_resources, scaled_yields, round(scaling_factor, 2)
+
+
+def scale_bill_of_materials_by_limit(
+    bill_of_materials,
+    limiting_quantity,
+    limiting_unit,
+    limiting_line,
+):
+    """Accepts BOM and parameters of limiting line item, calculates scaling factor from these, and
+    returns scaled materials and yields for displaying/printing/exporting scaled BOM"""
+
+    from apps.masterdata.services import (
+        adjust_units_for_display,
+        convert_units,
+        scale_bom_lines_by_scaling_factor,
+        scale_bom_resources_by_scaling_factor,
+        scale_bom_yields_by_scaling_factor,
+    )
+
+    """ calculate scaling factor """
+
+    # limiting_line = bill_of_materials.lines.get(item_id=limiting_item_id)
+
+    batch_line_quantity = limiting_line.quantity
+    batch_line_unit = limiting_line.unit
+
+    if batch_line_unit.unit_type == "EACH":
+        scaling_factor = limiting_quantity / batch_line_quantity
+    else:
+        standardized_batch_line_quantity = convert_units(
+            D(batch_line_quantity),
+            batch_line_unit.symbol,
+            STANDARD_UNITS[batch_line_unit.unit_type],
+        )
+        standardized_limiting_line_quantity = convert_units(
+            D(limiting_quantity),
+            limiting_unit.symbol,
+            STANDARD_UNITS[limiting_unit.unit_type],
+        )
+        scaling_factor = (
+            standardized_limiting_line_quantity / standardized_batch_line_quantity
+        )
+
+    """ use calculated scaling_factor to adjust lines, resource & yields """
+
+    scaled_lines = scale_bom_lines_by_scaling_factor(
+        bill_of_materials.lines.all(), scaling_factor
+    )
+    scaled_resources = scale_bom_resources_by_scaling_factor(
+        bill_of_materials.resource_requirements.all(), scaling_factor
+    )
+    scaled_yields = scale_bom_yields_by_scaling_factor(
+        bill_of_materials.yields, scaling_factor
+    )
+
+    return scaled_lines, scaled_resources, scaled_yields, round(scaling_factor, 2)
+
+
+def store_scaling_variables_in_session(request):
+    if request.POST.get("scale_type") == "YIELD":
+        request.session["scale_type"] = "YIELD"
+        yield_choice = request.POST.get("yield_choice")
+        request.session["quantity"] = request.POST.get(
+            f"yield_quantity_{yield_choice.lower()}"
+        )
+        request.session["unit"] = request.POST.get(f"yield_unit_{yield_choice.lower()}")
+
+    if request.POST.get("scale_type") == "MULTIPLE":
+        request.session["scale_type"] = "MULTIPLE"
+        request.session["scaling_factor"] = request.POST.get("multiple_scaling_factor")
+
+    if request.POST.get("scale_type") == "LIMIT":
+        request.session["scale_type"] = "LIMIT"
+        request.session["quantity"] = request.POST.get("limit_quantity")
+        request.session["unit"] = request.POST.get("limit_unit")
+        request.session["line"] = request.POST.get("limit_line")
+
+    return
+
+
+def generate_bom_tree(*, root_bom: models.BillOfMaterials) -> None:
+    """New implementation using Treebeard to persist n-ary tree once built
+    Tree will be able for lookup rather than being re-built for each production view
+    Tree will be built upon BOM transition to approved"""
+
+    PRODUCT_CHOICES = ["WIP", "FINISHED"]
+
+    node_lookup = {}
+    offsets = []
+    queue = deque([])
+    visited_nodes = []
+
+    get = lambda node_id: models.BillOfMaterialsTree.objects.get(pk=node_id)
+
+    root = models.BillOfMaterialsTree.add_root(
+        name=root_bom.product.name,
+        scaling_factor=1,
+        bill_of_materials=root_bom,
+        node_bom=root_bom,
+    )
+    node_lookup[root_bom.id] = root
+    queue.extend(list(root_bom.lines.all()))
+
+    counter = 0
+    while len(queue) > 0:
+
+        flag = 0  # checks whether all the child nodes have been visited.
+
+        # if next element of queue is Material (leaf node), remove from queue:
+        if queue[-1].item.category not in PRODUCT_CHOICES:
+            queue.pop()
+            continue
+        # if next element of queue is has already been visited:
+        elif queue[-1].id in visited_nodes:
+            queue.pop()
+            continue
+        else:
+            current = queue[-1]
+            parent_node = node_lookup[current.bill_of_materials_id]
+
+            scaling_factor = (
+                calculate_scaling_factor_for_bom(bom_line=current)
+                * parent_node.scaling_factor
+            )
+
+            # (standardized_quantity, standardized_unit) = standardize_units(
+            #     quantity=current.quantity, unit=current.unit
+            # )
+
+            current_node = get(parent_node.id).add_child(
+                name=current.item.get_bill_of_materials().product.name,
+                scaling_factor=scaling_factor,
+                leadtime=current.item.get_bill_of_materials().characteristics.leadtime,
+                # quantity=standardized_quantity,
+                quantity_standard=current.quantity_standard,
+                # unit=standardized_unit,
+                unit_standard=current.unit_standard,
+                bill_of_materials=None,
+                node_bom=current.item.get_bill_of_materials(),
+            )
+
+            node_lookup[current.item.get_bill_of_materials().id] = current_node
+
+        # any unvisited child (left to right sequence), is pushed to queue and added to visited_nodes
+        counter = 0
+        for line in current.item.get_bill_of_materials().lines.all():
+            if line.item.category in PRODUCT_CHOICES:
+                flag = 1
+                queue.append(line)
+                visited_nodes.append(current.id)
+                counter += 1
+            else:
+                visited_nodes.append(current.id)
+
+        # if all child nodes (from left to right) of current (parent node) have been visited then remove parent node from queue
+        if flag == 0:
+            queue.pop()
+        counter += 1
+
+    return root
+
+
+def generate_cost_sequence(bom_obj):
+    # returns a ordered list of sub-costings to calculate
+
+    product_choices = ["WIP", "FINISHED"]
+
+    evaluation_queue = [bom_obj]  # evaluation_queue must be only BOMs
+    return_data = []  # return_data will contain only BOMs
+    return_errors = []
+
+    while len(evaluation_queue):
+        current = evaluation_queue.pop()
+        if current.product.category in product_choices:
+            return_data.insert(0, current)
+            for line in current.lines.all():
+                if line.item.category in product_choices:
+                    evaluation_queue.append(line.item.bills_of_materials.latest())
+            continue
+
+        else:
+            return_data.insert(0, current)
+            for line in current.lines.all():
+                if line.item.category in product_choices:
+                    evaluation_queue.append(line.item.bills_of_materials.latest())
+            continue
+    return return_data
+
+
+def calculate_cost_sequence(seq):
+    product_choices = ["WIP", "FINISHED"]
+    threshold_for_cost_drivers = D(0.20)
+
+    cost_lookup = {}
+    cost_table = []
+
+    for idx, bom in enumerate(seq):
+        total_cost = D(0)
+        temp = {"item": bom.product.name}
+        lines = []
+
+        for line in bom.lines.all():
+
+            # if mismatch of units
+            # try item_conversion
+
+            if line.item.category not in product_choices:
+                # convert quantity to standard units
+                if line.item.unit_type == "EACH":
+                    standardized_quantity = line.quantity
+                    unit_cost = line.item.costs.latest().unit_cost_each
+                elif line.item.unit_type == "WEIGHT":
+                    standardized_quantity = convert_units(
+                        D(line.quantity),
+                        line.unit.symbol,
+                        STANDARD_UNITS[line.item.unit_type],
+                    )
+                    unit_cost = line.item.costs.latest().unit_cost_weight
+                else:
+                    standardized_quantity = convert_units(
+                        D(line.quantity),
+                        line.unit.symbol,
+                        STANDARD_UNITS[line.item.unit_type],
+                    )
+                    unit_cost = line.item.costs.latest().unit_cost_volume
+
+                # calculate extension
+                extension = round(standardized_quantity * unit_cost, 3)
+                total_cost += D(extension)
+
+            else:
+                # convert quantity to standard units
+                # determine scaling factor = bom quantity/batch yield
+                if line.item.unit_type == "EACH":
+                    standardized_quantity = line.quantity
+                    scaling_factor = (
+                        line.quantity
+                        / line.item.bills_of_materials.latest().yields.quantity_each
+                    )
+                elif line.item.unit_type == "WEIGHT":
+                    standardized_quantity = convert_units(
+                        D(line.quantity),
+                        line.unit.symbol,
+                        STANDARD_UNITS["WEIGHT"],
+                    )
+                    standardized_yield = convert_units(
+                        D(line.item.bills_of_materials.latest().yields.quantity_weight),
+                        line.item.bills_of_materials.latest().yields.unit_weight.symbol,
+                        STANDARD_UNITS["WEIGHT"],
+                    )
+                    scaling_factor = standardized_quantity / standardized_yield
+                else:
+                    standardized_quantity = convert_units(
+                        D(line.quantity),
+                        line.unit.symbol,
+                        STANDARD_UNITS["VOLUME"],
+                    )
+                    standardized_yield = convert_units(
+                        D(line.item.bills_of_materials.latest().yields.quantity_volume),
+                        line.item.bills_of_materials.latest().yields.unit_volume.symbol,
+                        STANDARD_UNITS["VOLUME"],
+                    )
+                    scaling_factor = standardized_quantity / standardized_yield
+
+                # TODO: Need to figure out unit cost here
+                unit_cost = D(0)
+
+                # extension is batch cost in lookup * scaling factor
+                extension = round(
+                    cost_lookup.get(line.item.bills_of_materials.latest().id, 0)
+                    * scaling_factor,
+                    3,
+                )
+                total_cost += D(extension)
+
+            lines.append(
+                {
+                    "sequence": line.sequence,
+                    "quantity": line.quantity,
+                    "unit": line.unit.symbol,
+                    "item": line.item.name,
+                    "id": line.item.id,
+                    "standardized_quantity": standardized_quantity,
+                    "standardized_unit": STANDARD_UNITS[line.item.unit_type],
+                    "unit_cost": unit_cost,
+                    "extension": extension,
+                    "cost_driver": False,
+                }
+            )
+
+        for line in lines:
+            if line["extension"] > total_cost * threshold_for_cost_drivers:
+                line["cost_driver"] = True
+
+        temp["lines"] = lines
+        cost_table.append(temp)
+        cost_lookup[bom.id] = total_cost
+
+    return cost_lookup, cost_table
+
+
+def calculate_tree_cost(*, sequence: list) -> Tuple[dict, list]:
+    product_choices = ["WIP", "FINISHED"]
+    threshold_for_cost_drivers = D(0.20)
+
+    cost_lookup = {}
+    cost_table = []
+
+    # calculate cost
+    for idx, node in enumerate(sequence):
+        bom = node.node_bom
+        total_cost = D(0)
+        temp = {"item": bom.product.name}
+        lines = []
+
+        for line in bom.lines.all():
+
+            # if mismatch of units
+            # try item_conversion
+
+            if line.item.category not in product_choices:
+                # convert quantity to standard units
+                if line.item.unit_type == "EACH":
+                    standardized_quantity = line.quantity
+                    unit_cost = line.item.costs.latest().unit_cost_each
+                elif line.item.unit_type == "WEIGHT":
+                    standardized_quantity = convert_units(
+                        D(line.quantity),
+                        line.unit.symbol,
+                        STANDARD_UNITS[line.item.unit_type],
+                    )
+                    unit_cost = line.item.costs.latest().unit_cost_weight
+                else:
+                    standardized_quantity = convert_units(
+                        D(line.quantity),
+                        line.unit.symbol,
+                        STANDARD_UNITS[line.item.unit_type],
+                    )
+                    unit_cost = line.item.costs.latest().unit_cost_volume
+
+                # calculate extension
+                extension = round(standardized_quantity * unit_cost, 3)
+                total_cost += D(extension)
+
+            else:
+                # convert quantity to standard units
+                # determine scaling factor = bom quantity/batch yield
+                if line.item.unit_type == "EACH":
+                    standardized_quantity = line.quantity
+                    scaling_factor = (
+                        line.quantity
+                        / line.item.bills_of_materials.latest().yields.quantity_each
+                    )
+                elif line.item.unit_type == "WEIGHT":
+                    standardized_quantity = convert_units(
+                        D(line.quantity),
+                        line.unit.symbol,
+                        STANDARD_UNITS["WEIGHT"],
+                    )
+                    standardized_yield = convert_units(
+                        D(line.item.bills_of_materials.latest().yields.quantity_weight),
+                        line.item.bills_of_materials.latest().yields.unit_weight.symbol,
+                        STANDARD_UNITS["WEIGHT"],
+                    )
+                    scaling_factor = standardized_quantity / standardized_yield
+                else:
+                    standardized_quantity = convert_units(
+                        D(line.quantity),
+                        line.unit.symbol,
+                        STANDARD_UNITS["VOLUME"],
+                    )
+                    standardized_yield = convert_units(
+                        D(line.item.bills_of_materials.latest().yields.quantity_volume),
+                        line.item.bills_of_materials.latest().yields.unit_volume.symbol,
+                        STANDARD_UNITS["VOLUME"],
+                    )
+                    scaling_factor = standardized_quantity / standardized_yield
+
+                # TODO: Need to figure out unit cost here
+                unit_cost = D(0)
+
+                # extension is batch cost in lookup * scaling factor
+                extension = round(
+                    cost_lookup.get(line.item.bills_of_materials.latest().id, 0)
+                    * scaling_factor,
+                    3,
+                )
+                total_cost += D(extension)
+
+            lines.append(
+                {
+                    "sequence": line.sequence,
+                    "quantity": line.quantity,
+                    "unit": line.unit.symbol,
+                    "item": line.item.name,
+                    "id": line.item.id,
+                    "standardized_quantity": standardized_quantity,
+                    "standardized_unit": STANDARD_UNITS[line.item.unit_type],
+                    "unit_cost": unit_cost,
+                    "extension": extension,
+                    "cost_driver": False,
+                }
+            )
+
+        for line in lines:
+            if line["extension"] > total_cost * threshold_for_cost_drivers:
+                line["cost_driver"] = True
+
+        temp["lines"] = lines
+
+        if idx == len(sequence) - 1:
+            cost_table.append(temp)
+        cost_lookup[bom.id] = total_cost
+
+    return cost_lookup, json.dumps(cost_table, cls=DecimalEncoder)
+
+
+""" 
+WeasyPrint currently (v.52.5, as of 2021-5-4) has not yet implemented CSS Grid  
+- so the html template used for rendering for OrderDetails for export has been rewritten using tables
+- there may be some inconsistencies in rendering, have to keep checking
+"""
+
+REPORT_TEMPLATES = {
+    "brief": "reports/bill_of_materials_pdf_brief.html",
+    "standard": "reports/bill_of_materials_pdf_standard.html",
+    "full": "reports/bill_of_materials_pdf_full.html",
+}
+
+
+def generate_pdf_for_bill_of_materials(
+    *,
+    base_url: str,
+    bill_of_materials_id: str,
+    report_type: str,
+    view_type: str,
+    organization: str,
+    scale_type: str = None,
+    scaling_factor: decimal.Decimal = None,
+    quantity: decimal.Decimal = None,
+    unit: models.UnitMeasurement = None,
+    line: models.BillOfMaterialsLine = None,
+) -> HttpResponse:
+
+    # Retrieve/calculate context
+    printed_as_of = f"Printed {timezone.now().astimezone(EASTERN_TZ).strftime('%A, %B %d, %Y at %I:%M %p')}"
+
+    data = models.BillOfMaterials.objects.get(id=bill_of_materials_id)
+    options = common_services.get_template_context_options(models.BillOfMaterials)
+
+    if view_type == "scaled":
+        # scale by multiple
+        if scale_type == "MULTIPLE" and all([data, scaling_factor]):
+            (
+                scaled_lines,
+                scaled_resources,
+                scaled_yield,
+            ) = scale_bill_of_materials_by_multiple(data, scaling_factor)
+            scaling_description = f"Scaled {'up' if D(scaling_factor) > 1 else 'down'} to <strong>{scaling_factor}<em>x</em></strong> standard batch"
+
+        # scale by yield
+        if scale_type == "YIELD" and all([data, quantity, unit]):
+            (
+                scaled_lines,
+                scaled_resources,
+                scaled_yield,
+                scaling_factor,
+            ) = scale_bill_of_materials_by_yield(data, quantity, unit)
+            scaling_description = f"Scaled {'up' if scaling_factor > 1 else 'down'} to produce <strong>{quantity} {unit.symbol} {data.yields.yield_noun or ''} {data.yields.note_each or '' if unit.unit_type == 'EACH' else ''}</strong> ({scaling_factor}<em>x</em> standard batch)"
+
+        # scale by limiting line
+        if scale_type == "LIMIT" and all([data, quantity, unit, line]):
+            (
+                scaled_lines,
+                scaled_resources,
+                scaled_yield,
+                scaling_factor,
+            ) = services.scale_bill_of_materials_by_limit(data, quantity, unit, line)
+            scaling_description = f"Scaled {'up' if scaling_factor > 1 else 'down'} to use <strong>{round(quantity,0) if line.unit.symbol in ['g', 'ml'] else round(quantity, 3)} {unit.symbol} {line.item.name.title()}</strong> ({scaling_factor}<em>x</em> standard batch)"
+
+        scaling_factor = str(scaling_factor)
+        lines = scaled_lines
+        resources = scaled_resources
+        yields = scaled_yield
+
+    else:
+        scaling_factor = None
+        scaling_description = None
+        lines = data.lines.all()
+        resources = data.resource_requirements.all()
+        yields = data.yields
+
+    header = f"{data.product.name} (v.{data.version} {data.get_state_display().upper()}{ scaling_factor if view_type == 'scaled' else ''}{'x scale' if view_type == 'scaled' else ''})"
+    header = header.replace('"', '\\"')
+
+    # Render PDF
+    font_config = FontConfiguration()
+    template = REPORT_TEMPLATES.get(report_type, None)
+
+    html_string = render_to_string(
+        template,
+        {
+            "data": data,
+            "options": options,
+            "view_type": view_type,
+            "scaling_factor": scaling_factor,
+            "scaling_description": scaling_description,
+            "lines": lines,
+            "resources": resources,
+            "yields": yields,
+            "organization": organization,
+            "printed_as_of": printed_as_of,
+            "header": header,
+        },
+    )
+
+    html = HTML(string=html_string, base_url=base_url)
+    result = html.write_pdf(
+        font_config=font_config,
+        presentational_hints=True,
+    )
+
+    # Generate HTTP response
+    filename = f"{data.product.name}-v.{data.version}.pdf"
+
+    response = HttpResponse(content_type="application/pdf;")
+    response["Content-Transfer-Encoding"] = "binary"
+    response["Content-Disposition"] = f'inline;filename="{filename}"'
+    # response["Content-Disposition"] = f'attachment;filename="{filename}"'
+
+    with NamedTemporaryFile(delete=True) as output:
+        output.write(result)
+        output.flush()
+        output = open(output.name, "rb")
+        response.write(output.read())
+
+    return response
 
 
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -560,8 +1668,6 @@ def export_as_xlsx_with_choices_validation(
 #     return
 
 
-
-
 def export_as_csv(
     *, queryset: QuerySet, fields: list, filename: str = "default"
 ) -> HttpResponse:
@@ -600,16 +1706,17 @@ def import_as_xlsx(
     pass
 
 
-
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 # PRODUCT
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
 
-
 def product_flatten_BOM_version_history(*, product: models.Product) -> None:
-    """ For use when duplicating products. New product should retain only most recent approved BOM, or draft BOM if only BOM available """
-    """ Since ostensibly duplicating to make edits, new product BOM will begin in DRAFT state to permit editing """
+    """
+    - When duplicating products, new product should retain only latest APPROVED BOM (or DRAFT BOM if only available)
+    - Bill of materials and its child objects should be set to version 1
+    - Since will want to make edits immediately to duplicate, duplicate BOM will begin in DRAFT state to permit editing
+    """
 
     # if no BOMs, return
     if product.bills_of_materials.count() == 0:
@@ -626,7 +1733,11 @@ def product_flatten_BOM_version_history(*, product: models.Product) -> None:
 
     # if multiple BOMs, keep latest approved, set as DRAFT and discard others
     if product.bills_of_materials.count() > 1:
-        bom = product.get_bill_of_materials()
+        bom = (
+            models.BillOfMaterials.objects.filter(product=product, state="APPROVED")
+            .order_by("created_at")
+            .first()
+        )
         bom.version = 1
         bom.state = "DRAFT"
         bom.save()
@@ -638,43 +1749,71 @@ def product_flatten_BOM_version_history(*, product: models.Product) -> None:
 
 def product_duplicate(*, product: models.Product) -> models.Product:
     """
-    Duplicate product and selected relations
-    (BillOfMaterials, ProductCredenceAttribute).
-    DO NOT duplicate OrderLines (Sales)
+    Duplicate product and related reference data
+    DO NOT duplicate transactional data (Sales, Production, Compliance)
+    Append 'DUPLICATE' to name
+    Reset version to 1 and status to DRAFT
     """
 
-    product_dupl = clone_object_instance(
-        obj=product, exclude_child_models=["orderline"]
+    from apps.masterdata.services import product_flatten_BOM_version_history
+
+    product_duplicate = common_services.clone_object_instance(
+        obj=product,
+        attrs_to_apply={"version": 1},
+        exclude_app_labels=[
+            "compliance",
+            "deliveries",
+            "production",
+            "purchasing",
+            "sales",
+        ],
+        exclude_child_models=[
+            "menu",
+            "orderline",
+            "request",
+            "requestline",
+            "shiftline",
+            "standingorderline",
+        ],
     )
 
-    # product_dupl = product
-    # product_dupl.id = None
-    product_dupl.name = f"{product.name} DUPLICATE"
-    product_dupl.save()
+    product_duplicate.name = f"{product.name} DUPLICATE"
+    product_duplicate.save()
 
-    # for bill_of_materials in product_dupl.bill_of_materials.all():
+    product_flatten_BOM_version_history(product=product_duplicate)
 
-    # # Follow relations
-    # fields = product_dupl._meta.get_fields()
-    # for field in fields:
+    return product_duplicate
 
-    #     # Clone child objs (1:N, 1:1) of original and relate to product_dupl
-    #     if field.auto_created and field.is_relation:
-    #         if field.many_to_many:
-    #             pass
-    #         else:
-    #             attrs = {field.remote_field.name: product_dupl}
-    #             children = field.related_model.objects.filter(
-    #                 **{field.remote_field.name: obj}
-    #             )
-    #             for child in children:
-    #                 product_dupl_object_instance(child, attrs)
-    # return product_dupl
 
-    product_flatten_BOM_version_history(product=product_dupl)
+def product_generate_version(*, product: models.Product) -> models.Product:
+    """
+    Duplicate product and related reference data
+    DO NOT duplicate transactional data (Sales, Production, Compliance)
+    Increment version
+    Set status to DRAFT
+    """
 
-    return product_dupl
+    product_new_version = common_services.clone_object_instance(
+        obj=product,
+        attrs_to_apply={"version": product.version + 1},
+        exclude_app_labels=[
+            "compliance",
+            "deliveries",
+            "production",
+            "purchasing",
+            "sales",
+        ],
+        exclude_child_models=[
+            "menu",
+            "orderline",
+            "request",
+            "requestline",
+            "shiftline",
+            "standingorderline",
+        ],
+    )
 
+    return product_new_version
 
 
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -682,9 +1821,6 @@ def product_duplicate(*, product: models.Product) -> models.Product:
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
 
-
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 # TEAM
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
-
-

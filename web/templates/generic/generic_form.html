@@ -1,0 +1,12 @@
+{% load widget_tweaks %}
+
+{% include 'generic/generic_mutate_errors.html' with form=form %}
+
+{% for field in form.visible_fields %}
+  {% include 'generic/generic_form_field.html' with form=form field=field %}
+{% endfor %}
+
+
+
+  
+  

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block body_block %}
+{% load static humanize %}
+
+<title>Bulk Editing: Confirm Changes</title>
+
+<!-- START VISIBLE CONTENT -->
+<div>
+
+    <!-- START TOP PANEL -->
+    <div>
+        <div class="flex flex-col justify-start">
+            <div class="font-bold ">
+                <a href="{% url 'masterdata:utility_list' %}" class="link">
+                    Utilities
+                </a>
+            </div>
+            <div class="page-heading">
+                Bulk Editing: Confirm Changes
+            </div>
+
+            
+            <!-- START ACTIONS -->
+            <div class="md:mb-5 mb-3 text-xs">
+            </div>
+            <!-- END ACTIONS -->
+        </div>
+    </div>
+    <!-- END TOP PANEL -->
+
+    <!-- START FORM -->
+    <div class="card">
+
+        <div class="card-heading">Summary</div>
+
+        <!-- START FORM -->
+        <div class="card-item">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="confirm" value="confirm" />
+
+                <!-- START SUMMARY -->
+                <div class="mb-3">
+                    <ul>
+                    <li>{{total_count}} {{model}} uploaded</li>
+                    <li>{{update_count}} {{model|lower}} to update</li>
+                    <li>{{create_count}} {{model|lower}} to be added</li>
+                    <li>{{no_change_count}} {{model|lower}} with no changes</li>
+                    </ul>
+                </div>
+                <!-- END SUMMARY -->
+
+
+
+                <!-- START PREVIEW - UPDATES -->
+                <div class="mt-3">
+                <div class="font-bold mt-2 mb-2">{{model}} to Update</div>
+
+                <div class="grid md:grid-cols-8 grid-cols-4">
+                    <!-- START GRID HEADER -->
+                        <div class="col-span-4 pb-1 font-bold text-sm border-b border-b-steel-700 md:inline hidden">Material</div>
+                        <div class="col-span-2 pb-1 pr-10 font-bold text-sm border-b border-b-steel-700 md:inline hidden">Category</div>
+                        <div class="col-span-2 pb-1 font-bold text-sm border-b border-b-steel-700 md:inline hidden">Input Type</div>
+                    <!-- END GRID HEADER -->
+
+                    <!-- START GRID DATA -->
+                    {% for obj in data.updates %}
+                        <div class="col-span-4">{{obj.name}}</div>
+                        <div class="col-span-2">{{obj.category}}</div>
+                        <div class="col-span-2">{{obj.input_type}}</div>
+                    {% empty %}
+                        <div class="col-span-8" >No updates to preview/confirm</div>
+                    {% endfor %}
+                    <!-- END GRID DATA -->
+                </div>
+                <!-- END PREVIEW - UPDATES -->
+
+                <!-- START PREVIEW - ADDITIONS -->
+                <div class="mt-3">
+                <div class="font-bold mt-2 mb-2">{{model}} to Add</div>
+
+                <div class="grid md:grid-cols-8 grid-cols-4">
+                    <!-- START GRID HEADER -->
+                        <div class="col-span-4 pb-1 font-bold text-sm border-b border-b-steel-700 md:inline hidden">Material</div>
+                        <div class="col-span-2 pb-1 pr-10 font-bold text-sm border-b border-b-steel-700 md:inline hidden">Category</div>
+                        <div class="col-span-2 pb-1 font-bold text-sm border-b border-b-steel-700 md:inline hidden">Input Type</div>
+                    <!-- END GRID HEADER -->
+
+                    <!-- START GRID DATA -->
+                    {% for obj in data.creates %}
+                        <div class="col-span-4">{{obj.name}}</div>
+                        <div class="col-span-2">{{obj.category}}</div>
+                        <div class="col-span-2">{{obj.input_type}}</div>
+                    {% empty %}
+                        <div class="col-span-8" >No additions to preview/confirm</div>
+                    {% endfor %}
+                    <!-- END GRID DATA -->
+                </div>
+                <!-- END PREVIEW - ADDITIONS -->
+
+                <!-- START BUTTONS -->
+                <div class="mt-5 md:mr-3 mr-0 w-100">
+                     <button type="submit" class="button-basic">
+                     Apply Changes
+                     </button>
+                     <a href="{% url 'masterdata:utility_bulk_edit' %}" type="button" class="button-basic bg-red-700 focus:ring-red-300">
+                     Cancel
+                     </a>
+                </div>
+                <!-- END BUTTONS -->
+
+            </form>
+        </div>
+        <!-- END FORM -->
+
+    </div>
+    <!-- END FORM -->
+
+</div>
+<!-- END VISIBLE CONTENT -->
+
+
+{% endblock %}

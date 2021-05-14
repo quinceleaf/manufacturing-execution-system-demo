@@ -1,0 +1,78 @@
+{% load has_group %}
+
+    <!-- START TOP PANEL -->
+    <div class="flex flex-col justify-start">
+        <div class="font-bold">
+            <a href="{% url options.url_list %}" class="link">
+                {{options.plural}}
+            </a>
+        </div>
+        <div class="page-heading">
+            {{data.name}}
+        </div>
+
+        <!-- START ACTIONS -->
+        <div class="actions"  x-data="{}">
+
+            <!-- START STATUS -->
+            <div class="mt-1 md:mb-0 mb-2 md:mr-3 mr-0"><span class="p-1 px-2 text-white bg-steel-500">v.{{data.version}} | Status: {{data.status.get_state_display}}</span></div>
+            <!-- END STATUS -->
+
+
+            {% if request.user|has_group:'Workflow (BOM)' %}
+                {% comment %} <div class="md:mt-0 mt-2 md:mr-3 mr-0"> {% endcomment %}
+                {% if data.status.state == 'DRAFT' %}
+                    <a class="action-link" href="{% url 'masterdata:product_change_status' pk=data.id status='AWAITING' %}">
+                        <i class="material-icons text-sm" style="position: relative; top: 0.1em;">pan_tool</i>
+                        <span class="action-text">Submit for Approval</span>
+                    </a>
+                {% elif data.status.state == 'AWAITING' %}
+                    {% if request.user|has_group:'Workflow (BOM)-Approval' %}
+                        <a class="action-link" href="{% url 'masterdata:product_change_status' pk=data.id status='APPROVED' %}">
+                            <i class="material-icons text-sm" style="position: relative; top: 0.2em;">done</i>
+                            <span class="action-text">Approve</span>
+                        </a>
+                        <a class="action-link" href="{% url 'masterdata:product_change_status' pk=data.id status='RETURNED' %}">
+                            <i class="material-icons text-sm" style="position: relative; top: 0.2em;">rule</i>
+                            <span class="action-text">Return for Revisions</span>
+                        </a>
+                    {% else %}
+                        <a class="action-link" href="{% url 'masterdata:product_change_status' pk=data.id status='DRAFT' %}">
+                            <i class="material-icons text-sm" style="position: relative; top: 0.2em;">settings_back</i>
+                            <span class="action-text">Retract Submission</span>
+                        </a>
+                    {% endif %}
+                {% elif data.status.state == 'RETURNED' %}
+                    <a class="action-link" href="{% url 'masterdata:product_change_status' pk=data.id status='AWAITING' %}">
+                        <i class="material-icons text-sm" style="position: relative; top: 0.2em;">pan_tool</i>
+                        <span class="action-text">Submit for Approval</span>
+                    </a>
+                {% endif %}
+                {% comment %} </div> {% endcomment %}
+            {% endif %}
+
+            {% if data.preserve %}
+                <a class="action-link" href="#" x-data @click="$dispatch('modal-confirm-archive', { open: true, objectid:'{{data.id}}', objecttype: '{{options.model}}', displaytype: '{{options.model}}', })">
+                    <i class="material-icons-outlined text-sm" style="position: relative; top: 0.2em;">archive</i>
+                    <span class="action-text">Archive</span>
+                </a>
+            {% else %}
+                <a class="action-link" href="#" x-data @click="$dispatch('modal-confirm-delete', { open: true, objectid:'{{data.id}}', objecttype: '{{options.model}}', displaytype: '{{options.model}}', })">
+                    <i class="material-icons-outlined text-sm" style="position: relative; top: 0.2em;">delete</i>
+                    <span class="action-text">Delete</span>
+                </a>
+            {% endif %}
+            <a class="action-link" href="{% url 'masterdata:product_duplicate' pk=data.id %}">
+                <i class="material-icons text-sm" style="position: relative; top: 0.2em;">content_copy</i>
+                <span class="action-text">Duplicate</span>
+            </a>
+            {% if data.status.state == 'APPROVED' %}
+                <a class="action-link" href="{% url 'masterdata:product_increment_version' pk=data.id %}">
+                    <i class="material-icons text-sm" style="position: relative; top: 0.2em;">autorenew</i>
+                    <span class="action-text">Generate Version</span>
+                </a>
+            {% endif %}
+        </div>
+        <!-- END ACTIONS -->
+    </div>
+    <!-- END TOP PANEL -->

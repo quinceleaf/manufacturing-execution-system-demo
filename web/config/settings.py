@@ -12,13 +12,10 @@ from pathlib import Path
 from celery.schedules import crontab
 from dotenv import load_dotenv
 
-
 # ––– APPLICATION IMPORTS
 import apps.common.tasks
 
-
 load_dotenv()
-
 
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 # ENV
@@ -28,8 +25,9 @@ DEBUG = os.getenv("DEBUG", 0)  # == 1
 SECRET_KEY = os.getenv("SECRET_KEY", get_random_secret_key())
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 
-print("DEBUG:", DEBUG)
-print("ENVIRONMENT:", ENVIRONMENT)
+ENV_CHECK = os.getenv("SECRET_KEY", False)
+if not ENV_CHECK:
+    print("NO ENV VARS")
 
 
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -37,7 +35,6 @@ print("ENVIRONMENT:", ENVIRONMENT)
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "127.0.0.1 localhost").split(" ")
 INTERNAL_IPS = os.getenv("INTERNAL_IPS", "127.0.0.1 localhost").split(" ")
@@ -65,9 +62,10 @@ THIRD_PARTY_APPS = [
     "simple_history",
     "widget_tweaks",
     "treebeard",
+    "django_celery_beat",
     "debug_toolbar",
     "coverage",
-    "django_celery_beat",
+    "aloe_django",
 ]
 
 PROJECT_APPS = [
@@ -107,6 +105,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.common.context_processors.app_header_links",
+                "apps.masterdata.context_processors.app_sidebar_links",
             ],
         },
     },
@@ -147,8 +146,6 @@ DATABASES = {
 #             # 'sslrootcert': '/path/to/file',
 #         },
 #     )
-
-print("DATABASES:", DATABASES)
 
 
 CACHES = {
@@ -262,3 +259,6 @@ CELERY_BEAT_SCHEDULE = {
 
 # Django Import-Export
 IMPORT_EXPORT_USE_TRANSACTIONS = True
+
+# Django Coverage Plugin
+TEMPLATE_DEBUG = True

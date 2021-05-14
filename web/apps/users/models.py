@@ -11,16 +11,9 @@ from django.utils.html import mark_safe
 from django.utils.translation import ugettext as _
 
 
-# ––– PYTHON UTILITY IMPORTS
-
-
 # –––THIRD-PARTY IMPORTS
 from django_fsm import FSMField, transition
 from django_fsm_log.decorators import fsm_log_by
-
-
-# from django_tenants.models import TenantMixin, DomainMixin
-# from django_tenants.utils import tenant_context
 
 
 # ––– PROJECT IMPORTS
@@ -184,6 +177,9 @@ class Settings(core_models.AbstractBaseModel):
 
     def __str__(self):
         return f"{self.user} | settings"
+
+    class Meta:
+        verbose_name_plural = "Settings"
 
 
 @receiver(post_save, sender=User)

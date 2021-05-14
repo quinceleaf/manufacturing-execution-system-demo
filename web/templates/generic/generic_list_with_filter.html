@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block body_block %}
+{% load static widget_tweaks %}
+
+
+<title>{{options.plural}}</title>
+
+<link type="text/css" rel="stylesheet" href="{% static 'css/select2.min.css' %}"/>
+<link type="text/css" rel="stylesheet" href="{% static 'css/select2-custom.css' %}"/>
+
+<!-- START VISIBLE CONTENT -->
+<div>
+
+    <!-- START TOP PANEL -->
+    <div>
+        <div class="font-bold text-xl">{{options.plural}}</div>
+        <div class="flex md:flex-row flex-col md:justify-between justify-start text-xs">
+            <!-- START ACTIONS -->
+            <div class="md:mt-0 mt-1">
+                {% if options.url_add %}
+                <a class="text-steel-500 mr-3" href="{% url options.url_add %}">
+                    <i class="material-icons text-sm" style="position: relative; top: 0.2em;">add_circle_outline</i>
+                    <span class="hover:underline">Add</span>
+                </a>
+                {% endif %}
+                {% if options.url_add_bulk %}
+                <a class="text-steel-500 mr-3" href="{% url options.url_add_bulk %}">
+                    <i class="material-icons text-sm" style="position: relative; top: 0.2em;">add_circle_outline</i>
+                    <span class="hover:underline">Add Multiple</span>
+                </a>
+                {% endif %}
+                {% if options.url_edit_via_xlsx %}
+                <a class="text-steel-500 mr-3" href="{% url options.url_edit_via_xlsx %}">
+                    <i class="material-icons text-sm" style="position: relative; top: 0.2em;">add_circle_outline</i>
+                    <span class="hover:underline">Edit using XLSX</span>
+                </a>
+                {% endif %}
+                {% if not options.url_add and not options.url_add_bulk and not options.url_edit_via_xlsx %}
+                <a class="text-gray-300 mr-3" href="#" disabled>
+                    <i class="material-icons text-sm" style="position: relative; top: 0.2em;">highlight_off</i>
+                    <span class="hover:underline">No Actions Available</span>
+                </a>
+                {% endif %}
+            </div>
+            <!-- END ACTIONS -->
+        </div>
+    </div>
+    <!-- END TOP PANEL -->
+
+    {% include 'components/filterview_filter.html' with form=filter.form %}
+
+    <!-- START LISTING -->
+    <div class="card">
+
+            <div class="mb-2 text-lg font-bold">{{options.plural}}</div>
+            <div class="border-t border-gray-300">
+                {% for item in data %}
+                <div class="flex flex-row justify-content-between border border-gray-300 first:border-t-1 border-t-0 hover:bg-steel-100">
+                    <div class="flex-1 p-2">
+                        <a href="{% url options.url_detail pk=item.id %}" class="text-steel-500 hover:underline">{{ item }}</a>
+                    </div>
+                    <div class="flex-initial p-2 text-right">
+                        {% if options.url_edit %}
+                        <a href="{% url options.url_edit pk=item.id %}" class="text-xs text-steel-500 hover:underline">
+                            <i class="material-icons text-secondary"
+                            style="font-size: 0.9em; position: relative; top: 0.1em;">edit</i>
+                            Edit
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="flex-1 p-2 text-sm">
+                    No {{options.plural.lower}} {% if filter_applied %} matching filter {% else %} found {% endif %} 
+                    {% if filter_applied %}— <a href="{% url options.url_list %}" class="text-steel-500 hover:underline">clear filter</a>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <!-- END LISTING -->
+
+    {% include "components/pagination.html" with data=data filter_applied=filter_applied %}
+</div>
+<!-- END VISIBLE CONTENT -->
+
+<script type="text/javascript" src="{% static 'js/jquery-3.5.1.min.js' %}" ></script> 
+<script type="text/javascript" src="{% static 'js/select2.min.js' %}" ></script>
+<script type="text/javascript" src="{% static 'django_select2/django_select2.js' %}" ></script> 
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    let selectFilters = $('.django-select2');
+    selectFilters.each(function() {
+        let placeholder = $(this).attr('placeholder');
+        $(this).select2({placeholder: placeholder});
+    })
+  });
+</script>
+
+
+{% endblock %}

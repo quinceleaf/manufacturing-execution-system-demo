@@ -1,0 +1,16 @@
+[run]
+source = .
+omit = 
+    /*venv/*
+    config/asgi.py
+    config/wsgi.py
+    config/urls.py
+    manage.py
+branch = True
+disable_warnings =
+    already-imported
+
+[report]
+fail_under = 100
+show_missing = True
+skip_covered = True

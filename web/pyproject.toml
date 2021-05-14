@@ -33,6 +33,9 @@ celery = "5.0.5"
 django-debug-toolbar = "^3.2"
 coverage = "^5.5"
 django-celery-beat = "^2.2.0"
+aloe-django = "^0.2.0"
+django-coverage-plugin = "^1.8.0"
+weasyprint = "^52.5"
 
 
 

@@ -7,6 +7,14 @@ from apps.masterdata import models as masterdata_models
 # MASTERDATA SERIALIZERS
 
 
+class BillOfMaterialsLineSelectSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    text = serializers.CharField(source="name")
+
+    class Meta:
+        model = masterdata_models.BillOfMaterialsLine
+
+
 class ItemSelectSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     text = serializers.CharField(source="name")

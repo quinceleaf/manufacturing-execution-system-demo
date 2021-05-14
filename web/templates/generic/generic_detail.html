@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block body_block %}
+{% load static %}
+{% load get_verbose_choice %}
+
+
+<title>{{data.name}}</title>
+
+<!-- START VISIBLE CONTENT -->
+<div x-data="{ modalconfirmdeleteopen: false }">
+
+    {% include "components/top_panel_detail.html" %}
+
+    <!-- START FIELDS -->
+    <div class="card">
+
+            <!-- START FIELDS -->
+            {% for field in form %}
+                <div class="card-item">
+                    <div class="card-label">{{field.label}}</div>
+                    <div class="card-text">
+                        {% get_verbose_choice data field.name %}
+                    </div>
+                </div>
+            {% endfor %}
+            <!-- END FIELDS -->
+
+    </div>
+    <!-- END FIELDS -->
+
+    <!-- START RELATED DATA -->
+    {% if related_data %}
+        <div class="card">
+
+            {% for item in related_data %}
+            <div class="card-item">
+                <div class="card-label">{{item.label}}</div>
+                <div class="card-text">
+                    {{item.value}}
+                </div>
+            </div>
+            {% endfor %}
+
+        </div>
+    {% endif %}
+    <!-- END RELATED DATA -->
+
+</div>
+<!-- END VISIBLE CONTENT -->
+
+{% include "components/modal_confirm_delete.html" %}
+
+{% endblock %}

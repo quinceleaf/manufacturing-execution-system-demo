@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block body_block %}
+{% load static %}
+{% load widget_tweaks %}
+
+<title>{% if object %} Edit {% else %} Add {% endif %}{{options.model}}</title>
+
+<link type="text/css" rel="stylesheet" href="{% static 'css/select2.min.css' %}"/>
+<link type="text/css" rel="stylesheet" href="{% static 'css/select2-custom.css' %}"/>
+<link type="text/css" rel="stylesheet" href="{% static 'css/trumbowyg.min.css' %}" />
+
+<!-- START VISIBLE CONTENT -->
+<div>
+
+    {% include "components/top_panel_child_mutate.html" %}
+
+    <!-- START FORM -->
+    <div>
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <!-- START FORM (GENERIC) -->
+            <div class="card">
+
+            {% include 'generic/generic_mutate_errors.html' with form=form %}
+
+            <!-- START - PRODUCTION INFORMATION -->
+            <div class="mt-6 p-3 border">
+
+                <div class="mb-2 font-bold">Production</div>
+
+                <div class="flex lg:flex-row flex-col lg:justify-between justify-start">
+                    <!-- START – LEAD TIME -->
+                    <div class="mb-5 mr-1">
+                    {% include 'generic/generic_form_field.html' with form=form field=form.leadtime %}
+                    </div>
+                    <!-- START – TEMPERATURE PREPARATION -->
+                    <div class="mb-5 mr-1">
+                    {% include 'generic/generic_form_field.html' with form=form field=form.temperature_preparation %}
+                    </div>
+                    <!-- START – TEMPERATURE STORAGE -->
+                    <div class="mb-5 mr-1">
+                    {% include 'generic/generic_form_field.html' with form=form field=form.temperature_storage %}
+                    </div>
+                    <!-- START – TEMPERATURE SERVICE -->
+                    <div class="mb-5">
+                    {% include 'generic/generic_form_field.html' with form=form field=form.temperature_service %}
+                    </div>
+                </div>
+
+                <!-- LABOR NOTES -->
+                {% include 'generic/generic_form_field.html' with form=form field=form.note_production %}
+
+            </div>
+            <!-- END - PRODUCTION INFORMATION -->
+
+            <!-- START - LABOR INFORMATION -->
+            <div class="mt-6 p-3 border">
+
+                <div class="mb-2 font-bold">Labor</div>
+
+                <!-- TEAM -->
+                {% include 'generic/generic_form_field.html' with form=form field=form.team %}
+
+                <!-- TOTAL ACTIVE TIME -->
+                {% include 'generic/generic_form_field.html' with form=form field=form.total_active_time %}
+
+                <!-- TOTAL INACTIVE TIME -->
+                {% include 'generic/generic_form_field.html' with form=form field=form.total_inactive_time %}
+
+                <!-- STAFF COUNT -->
+                {% include 'generic/generic_form_field.html' with form=form field=form.staff_count %}
+
+                <!-- LABOR NOTES -->
+                {% include 'generic/generic_form_field.html' with form=form field=form.note_labor %}
+
+            </div>
+            <!-- END - LABOR INFORMATION -->
+
+            </div>
+            <!-- END FORM (GENERIC) -->
+
+            {% include 'components/buttons_mutate.html' %}
+
+        </form>
+    </div>
+    <!-- END FORM -->
+
+</div>
+<!-- END VISIBLE CONTENT -->
+
+<script type="text/javascript" src="{% static 'js/jquery-3.5.1.min.js' %}" ></script> 
+<script type="text/javascript" src="{% static 'js/select2.min.js' %}" ></script>
+<script type="text/javascript" src="{% static 'django_select2/django_select2.js' %}" ></script> 
+<script type="text/javascript" src="{% static 'js/trumbowyg.min.js' %}"></script>
+
+<script type="text/javascript">
+    $.trumbowyg.svgPath = '{% static "img/icons.svg" %}';
+    $('#notes-1').trumbowyg({
+        semantic: true,
+        autogrowOnEnter: true,
+        removeformatPasted: true,
+        btns: [['undo', 'redo'], ['strong'], ['link'], ['unorderedList', 'orderedList', 'paragraph',], ['horizontalRule'], ['removeformat'],],
+        tagsToRemove: ['script',],
+    });
+    $('#notes-2').trumbowyg({
+        semantic: true,
+        autogrowOnEnter: true,
+        removeformatPasted: true,
+        btns: [['undo', 'redo'], ['strong'], ['link'], ['unorderedList', 'orderedList', 'paragraph',], ['horizontalRule'], ['removeformat'],],
+        tagsToRemove: ['script',],
+    });
+</script>
+
+{% endblock %}

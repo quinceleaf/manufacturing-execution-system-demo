@@ -1,0 +1,230 @@
+{% extends "reports/bill_of_materials_pdf_base.html" %}
+{% block body_block %}
+{% load static %}
+{% load humanize editable has_group remove_trailing %}
+
+<title>{{data.product.name}}, v.{{data.version}}</title>
+
+<!-- START VISIBLE CONTENT -->
+<div style="orphans: 2;">
+
+    <!-- START TOP PANEL -->
+    <div class="flex flex-row justify-start items-center w-full">
+
+        <!-- START LOGO -->
+        <div class="flex-none">
+            <img
+            class="h-8"
+            src="{% static 'img/logo.png' %}"
+            height="70px"
+            alt="CaterChain.io"
+            />
+        </div>
+        <!-- END LOGO -->
+
+        <!-- START PRODUCT -->
+        <div class="flex-1">
+            <div class="flex flex-col ml-4">
+                <div class="font-bold text-xl">
+                    {{data.product.name}}
+                </div>
+                <div class="text-xs">
+                    v.{{ data.version }} {{data.get_state_display|upper}} {% if view_type == 'scaled'%} | {{scaling_factor}}x scale{% endif %}
+                </div>
+            </div>
+        </div>
+        <!-- END PRODUCT -->
+
+    </div>
+    <!-- END TOP PANEL -->
+
+    <!-- START BATCH -->
+    <div>
+
+        <!-- START MATERIALS SUBSECTION -->
+        <div class="card-subsection">
+            <div class="font-bold text-sm">Materials</div>
+        </div>
+
+        <table class="table-fixed w-full">
+            <!-- START TABLE DATA -->
+                {% for line in lines %}
+                <tr>
+                    {% if forloop.last %}
+                        <td class="grid-element w-3/12 pr-10 text-right">
+                            {% if line.unit.symbol == 'to taste' %}
+                                <span class="font-italic">to taste</span>
+                            {% elif line.unit.symbol == 'g' %}
+                                {{line.quantity|floatformat:"0"|remove_trailing|intcomma}} {{line.unit.symbol}}
+                            {% elif line.unit.symbol == 'ml' %}
+                                {{line.quantity|floatformat:"0"|remove_trailing|intcomma}} {{line.unit.symbol}}
+                            {% else %}
+                                {{line.quantity|remove_trailing|intcomma}} {{line.unit.symbol}}
+                            {% endif %}
+                        </td>
+                        <td class="grid-element w-6/12">
+                            {% if line.item.category == 'WIP' or line.item.category == 'FINISHED' %}
+                                {{line.item.name|title}}
+                            {% else %}
+                                {{line.item.name|title}}
+                            {% endif %}
+                        </td>
+                        <td class="grid-element w-3/12">{{line.note|default:""}}</td>
+                    {% else %}
+                        <td class="grid-element w-3/12 pr-10 text-right border-b border-b-steel-300">
+                            {% if line.unit.symbol == 'to taste' %}
+                                <span class="font-italic">to taste</span>
+                            {% else %}
+                                {{line.quantity|remove_trailing|intcomma}} {{line.unit.symbol}}
+                            {% endif %}
+                        </td>
+                        <td class="grid-element w-6/12 border-b border-b-steel-300">
+                            {% if line.item.category == 'WIP' or line.item.category == 'FINISHED' %}
+                                {{line.item.name|title}}
+                            {% else %}
+                                {{line.item.name|title}}
+                            {% endif %}
+                        </td>
+                        <td class="grid-element w-3/12 border-b border-b-steel-300">{{line.note|default:""}}</td>
+                    {% endif %}
+                {% empty %}
+                {% endfor %}
+                </tr>
+            <!-- END TABLE DATA -->
+        </table>
+        <!-- END MATERIALS SUBSECTION -->
+
+        <!-- START YIELDS SUBSECTION -->
+        <div class="card-subsection">
+            <div class="font-bold text-sm">Yield</div>
+        </div>
+
+        <table class="table-fixed w-full">
+
+            {% if yields %}
+
+                {% if yields.unit_weight %}
+                    <tr>
+                        {% if yields.unit_weight.symbol == 'g' %}
+                            <td class="grid-element w-3/12 pr-10 text-right"">{{yields.quantity_weight|floatformat:"0"|remove_trailing|intcomma}} {{yields.unit_weight.symbol}}</td>
+                        {% else %}
+                            <td class="grid-element w-3/12 pr-10 text-right"">{{yields.quantity_weight|floatformat:"-3"|remove_trailing|intcomma}} {{yields.unit_weight.symbol}}</td>
+                        {% endif %}
+                        <td class="grid-element w-9/12"></td>
+                    </tr>
+                {% endif %}
+
+                {% if yields.unit_volume %}
+                    <tr>
+                        {% if yields.unit_volume.symbol == 'ml' %}
+                            <td class="grid-element w-3/12 pr-10 text-right"">{{yields.quantity_volume|floatformat:"0"|remove_trailing|intcomma}} {{yields.unit_volume.symbol}}</td>
+                        {% else %}
+                            <td class="grid-element w-3/12 pr-10 text-right"">{{yields.quantity_volume|floatformat:"-3"|remove_trailing|intcomma}}</td>
+                        {% endif %}
+                        <td class="grid-element w-9/12"></td>
+                    </tr>
+                {% endif %}
+
+                {% if yields.unit_each %}
+                    <tr>
+                        <td class="grid-element w-3/12 pr-10 text-right"">{{yields.quantity_each|remove_trailing|intcomma|floatformat:"0"}} {{yields.unit_each.symbol}}</td>
+                        <td class="grid-element w-9/12">{{yields.note_each|default:"<em>(unit ambiguous)</em>"}}</td>
+                    </tr>
+                {% endif %}
+
+            {% else %}
+                <tr>
+                    <td class="grid-element w-full">No yields entered</td>
+                </tr>
+            {% endif %}
+
+        </table>
+        <!-- END YIELDS SUBSECTION -->
+
+        <!-- START RESOURCES SUBSECTION -->
+
+        <div class="card-subsection">
+            <div class="font-bold text-sm">Resources</div>
+        </div>
+
+        <table class="table-fixed w-full">
+            <!-- START TABLE DATA -->
+
+                {% for resource in resources %}
+
+                <tr>
+
+                    {% if forloop.last %}
+                        <td class="grid-element w-3/12">{{resource.capacity_required|remove_trailing|intcomma}} {{resource.resource.unit}}</td>
+                    {% else %}
+                        <td class="grid-element w-3/12 border-b border-b-steel-300">{{resource.capacity_required|remove_trailing|intcomma}} {{resource.resource.unit}}</td>
+                    {% endif %}
+
+                    {% if forloop.last %}
+                        <td class="grid-element w-9/12">{{resource.resource.name|title}}</td>
+                    {% else %}
+                        <td class="grid-element w-9/12 border-b border-b-steel-300">{{resource.resource.name|title}}</td>
+                    {% endif %}
+                            
+                {% empty %}
+
+                    <td class="grid-element w-full mt-3">No resources entered</td>
+
+                </tr>
+
+                {% endfor %}
+
+            <!-- END TABLE DATA -->
+        </table>
+        <!-- END RESOURCES SUBSECTION -->
+
+    </div>
+    <!-- END BATCH -->
+
+    <!-- START PROCEDURE -->
+    <div class="card-subsection">
+        <div class="font-bold text-sm">Procedure</div>
+    </div>
+
+    <table class="table-fixed w-full">
+        <tr>
+        {% if data.get_procedure_english %}
+            <td class="grid-element w-full">
+                {{data.get_procedure_english.procedure|safe}}
+            </td>
+        {% else %}
+            <td class="grid-element w-full">  
+                No procedure entered
+            </td>
+        {% endif %}
+        </tr>
+    </table>
+    <!-- END PROCEDURE -->
+
+
+    <!-- START CHARACTERISTICS -->
+    <div class="card-subsection">
+        <div class="font-bold text-sm">Characteristics</div>
+    </div>
+
+    <table class="table-fixed w-full border-t border-t-steel-100">
+
+        <tr class="card-item" style="page-break-inside: avoid !important;">
+            <td class="align-top">
+                <span class="card-label">Lead Time</span></br>
+                <span class="card-text">{{data.characteristics.leadtime}} days</span>
+            </td>
+            <td class="align-top">
+                <span class="card-label">Team</span><br/>
+                <span class="card-text">{{data.team}}</span>
+            </td>
+        </tr>
+
+    </table>
+    <!-- END CHARACTERISTICS -->
+
+
+</div>
+<!-- END VISIBLE CONTENT -->
+
+{% endblock %}

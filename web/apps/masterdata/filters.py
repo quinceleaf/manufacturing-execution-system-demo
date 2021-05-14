@@ -1,26 +1,53 @@
+# ––– DJANGO MODELS
 from django.db.models import Q
 
+
+# ––– THIRD-PARTY MODELS
 import django_filters
 
+
+# ––– APPLICATION IMPORTS
 from apps.masterdata import models
 
 
-class MaterialListFilterSimple(django_filters.FilterSet):
+class BillOfMaterialsFilterSimple(django_filters.FilterSet):
+
+    product = django_filters.CharFilter(lookup_expr="name__icontains", distinct=True)
+
+    class Meta:
+        model = models.BillOfMaterials
+        fields = [
+            "product",
+        ]
+
+
+class MaterialFilterSimple(django_filters.FilterSet):
+
+    MATERIAL_VALID_CATEGORIES = (
+        ("RAW", "Raw Food Ingredient"),
+        ("PREPARED", "Prepared Food Ingredient"),
+        ("SERVICE", "Service"),
+        ("MRO", "Maintenance/Operating Supplies"),
+        ("PACKAGING", "Packaging/Disposable"),
+        ("OTHER", "Other/Misc"),
+    )
 
     name = django_filters.CharFilter(lookup_expr="icontains", distinct=True)
+
+    category = django_filters.ChoiceFilter(choices=MATERIAL_VALID_CATEGORIES)
 
     class Meta:
         model = models.Material
         fields = ["name", "category"]
 
 
-class MaterialListFilterAdvanced(django_filters.FilterSet):
+class MaterialFilterAdvanced(django_filters.FilterSet):
     class Meta:
         model = models.Material
-        fields = ["name", "category", "state", "notes", "unit_type"]
+        fields = ["name", "category", "notes", "is_available", "unit_type"]
 
 
-class MaterialCharacteristicsBulkEditListFilterAdvanced(django_filters.FilterSet):
+class MaterialCharacteristicsBulkEditFilterAdvanced(django_filters.FilterSet):
 
     INVENTORY_CATEGORY_CHOICES = (
         ("RAW", "Raw Food Ingredient"),
@@ -45,22 +72,35 @@ class MaterialCharacteristicsBulkEditListFilterAdvanced(django_filters.FilterSet
         ]
 
 
-class ProductListFilterSimple(django_filters.FilterSet):
+class ProductFilterSimple(django_filters.FilterSet):
+    PRODUCT_VALID_CATEGORIES = (
+        ("WIP", "Work-in-Progress"),
+        ("FINISHED", "Finished Product"),
+    )
 
     name = django_filters.CharFilter(lookup_expr="icontains", distinct=True)
+
+    category = django_filters.ChoiceFilter(choices=PRODUCT_VALID_CATEGORIES)
 
     class Meta:
         model = models.Product
         fields = ["name", "category"]
 
 
-class ProductListFilterAdvanced(django_filters.FilterSet):
+class ProductFilterAdvanced(django_filters.FilterSet):
     class Meta:
         model = models.Product
-        fields = ["name", "category", "state", "notes", "unit_type"]
+        fields = [
+            "name",
+            "category",
+            "notes",
+            "is_available",
+            "unit_type",
+            "production_type",
+        ]
 
 
-class ResourceListFilterSimple(django_filters.FilterSet):
+class ResourceFilterSimple(django_filters.FilterSet):
 
     name = django_filters.CharFilter(lookup_expr="icontains", distinct=True)
 
@@ -69,13 +109,13 @@ class ResourceListFilterSimple(django_filters.FilterSet):
         fields = ["name"]
 
 
-class ResourceListFilterAdvanced(django_filters.FilterSet):
+class ResourceFilterAdvanced(django_filters.FilterSet):
     class Meta:
         model = models.Resource
         fields = ["name", "capacity"]
 
 
-class TeamListFilterSimple(django_filters.FilterSet):
+class TeamFilterSimple(django_filters.FilterSet):
 
     name = django_filters.CharFilter(lookup_expr="icontains", distinct=True)
 
@@ -84,7 +124,16 @@ class TeamListFilterSimple(django_filters.FilterSet):
         fields = ["name"]
 
 
-class TeamListFilterAdvanced(django_filters.FilterSet):
+class TeamFilterAdvanced(django_filters.FilterSet):
     class Meta:
         model = models.Team
         fields = ["name"]
+
+
+class UnitMeasurementFilterSimple(django_filters.FilterSet):
+
+    name = django_filters.CharFilter(lookup_expr="icontains", distinct=True)
+
+    class Meta:
+        model = models.UnitMeasurement
+        fields = ["name", "symbol"]

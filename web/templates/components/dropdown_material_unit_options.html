@@ -1,0 +1,4 @@
+<option value="">Select {{unit.unit_type|lower}}... </option>
+{% for unit in units %}
+    <option value="{{unit.id}}" data-material-id="{{material_id}}">{{ unit.name }}</option>
+{% endfor %}

@@ -1,0 +1,128 @@
+{% load has_group %}
+
+    <!-- START CHARACTERISTICS -->
+    <div class="card">
+
+
+        <div class="card-heading">Characteristics</div>
+
+        <!-- START PRODUCT INFORMATION SUBSECTION -->
+
+        <div class="card-subsection items-center mb-3">
+
+            <div class="font-bold text-sm">Product Information</div>
+
+            <!-- START ACTIONS (SUBSECTION) -->
+            {% if request.user|has_group:'Workflow (BOM)' %} 
+                <div class="actions mb-0">
+                    <a class="action-link" href="{% url 'masterdata:product_characteristics_edit' pk=data.id %}">
+                        <i class="material-icons text-sm" style="position: relative; top: 0.1em;">edit</i>
+                        <span class="action-link-text">Edit</span>
+                    </a>
+                </div>
+            {% endif %}
+            <!-- END ACTIONS (SUBSECTION) -->
+        </div>
+
+            <!-- START UNIT PRICE -->
+            <div class="card-item">
+                <div class="card-label">Unit Price</div>
+                <div class="card-text">
+                    ${{data.characteristics.unit_price}} 
+                    {% if data.unit_type == "EACH" %} 
+                        each
+                    {% elif data.unit_type == "WEIGHT" %} 
+                        {% if settings.default_unit_weight %}
+                            per {{settings.default_unit_weight.symbol}}
+                        {% else %}
+                            <span class="text-gray-300">(No default unit weight set - please select default in 
+                                <a class="link" href="#">Master Data settings</a>)
+                            </span>
+                        {% endif %}
+                    {% elif data.unit_type == "VOLUME" %} 
+                        {% if settings.default_unit_volume %}
+                            per {{settings.default_unit_volume.symbol}}
+                        {% else %}
+                            <span class="text-gray-300">(No default unit volume set - please select default in 
+                                <a class="link" href="#">Master Data settings</a>)
+                            </span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            <!-- END UNIT PRICE -->
+
+            <!-- START DESCRIPTION -->
+            <div class="card-item">
+                <div class="card-label">Description</div>
+                <div class="card-text">
+                    {{data.characteristics.description|default:"No description provided"}}
+                </div>
+            </div>
+            <!-- END DESCRIPTION -->
+
+            <div class="flex md:flex-row flex-col space-x-10">
+                <!-- START SHELF LIFE -->
+                <div class="card-item">
+                    <div class="card-label">Shelf life</div>
+                    <div class="card-text">
+                        {{data.characteristics.shelf_life}} days
+                    </div>
+                </div>
+                <!-- END SHELF LIFE -->
+
+                <!-- START UPC CODE -->
+                <div class="card-item">
+                    <div class="card-label">UPC code</div>
+                    <div class="card-text">
+                        {{data.characteristics.upc_code|default:"None assigned"}}
+                    </div>
+                </div>
+                <!-- END UPC CODE -->
+            </div>
+
+
+        <!-- END PRODUCT INFORMATION SUBSECTION -->
+
+        <!-- START ALLERGEN INFORMATION SUBSECTION-->
+
+        <div class="card-subsection items-center mb-3">
+            <div class="font-bold text-sm">Allergens and Ingredients Statement</div>
+        </div>
+
+        <div class="card-text">
+            {% if data.characteristics.allergens_evaluated == "NAN" %}
+                Not applicable to material category {{data.category}}
+            {% elif data.characteristics.allergens_evaluated == "PENDING" or data.characteristics.allergens_evaluated == "IN_PROGRESS" %}
+                <i class="material-icons text-sm text-gray-500" style="position: relative; top: 0.1em;">pending_actions</i>
+                <span class="action-text">{{data.characteristics.get_allergens_evaluated_display}}</span>: Allergens and ingredients for products will be auto-generated from the bill of materials required to produce them
+            {% else %}
+
+                <!-- START ALLERGENS -->
+                <div class="card-item">
+                    <div class="card-label">Allergens</div>
+                    <div class="card-text">
+                        {{allergens}}
+                    </div>
+                </div>
+                <!-- END ALLERGENS -->
+
+                <!-- START INGREDIENTS -->
+                <div class="card-item">
+                    <div class="card-label">Ingredients</div>
+                    <div class="card-text">
+                        {{data.characteristics.ingredients|default_if_none:"No materials entered"}}
+                    </div>
+                </div>
+                <!-- END INGREDIENTS -->
+
+            {% endif %}
+        </div>
+
+        <!-- START ALLERGEN INFORMATION SUBSECTION -->
+
+
+
+
+    </div>
+    <!-- END CHARACTERISTICS -->

@@ -1,0 +1,203 @@
+{% load widget_tweaks humanize has_group remove_trailing %}
+
+<!-- START MODAL - SCALING -->
+    <template x-on:modal-scaling.window="modalscalingopen = $event.detail.open;" ></template>
+    <template x-if="modalscalingopen">
+        <div @click.away="modalscalingopen = false" class="absolute top-0 left-0 flex items-center justify-center w-full h-full bg-steel-900 bg-opacity-50">
+            <div class="mx-auto lg:p-8 md:p-6 p-4 md:max-w-2xl h-1/2 text-left bg-white rounded-md shadow-xl" x-data="scalingForm()" >
+                <form id="scaling_form" method="post" action="" novalidate>
+    
+                    <!-- START MODAL TITLE -->
+                    <div class="font-bold text-lg">
+                        Scaling
+                    </div>
+                    <!-- END MODAL TITLE -->
+
+                    <!-- START MODAL BODY -->
+                    <div class="mt-2 text-sm leading-5 text-gray-500">
+
+                        <div x-data="{ active: 0 }">
+
+                            <!-- START TABS -->
+                            <div class="flex md:flex-row flex-col border border-steel-200 overflow-hidden -mb-px">
+                                <button class="px-4 py-1 w-full" x-on:click.prevent="active = 0" x-bind:class="{'bg-steel-500 text-white': active === 0}">
+                                    <span class="md:inline hidden">By Desired </span>Yield
+                                </button>
+                                <button class="px-4 py-1 w-full" x-on:click.prevent="active = 1" x-bind:class="{'bg-steel-500 text-white': active === 1}">
+                                    <span class="md:inline hidden">By Batch </span>Multiple
+                                </button>
+                                <button class="px-4 py-1 w-full" x-on:click.prevent="active = 2" x-bind:class="{'bg-steel-500 text-white': active === 2}">
+                                    <span class="md:inline hidden">By Limiting </span>Material
+                                </button>
+                            </div>
+                            <!-- END TABS -->
+
+                            <!-- START CONTENT -->
+                            {% csrf_token %}
+
+                            <input id="scale_type" type="hidden" name="scale_type" value=""/>
+
+                            <div class="border border-steel-200 -mt-px">
+
+                                <!-- START TAB - DESIRED YIELD -->
+                                <div class="p-4 space-y-2" x-show="active === 0"
+                                x-transition:enter="transition ease-out duration-300"
+                                x-transition:enter-start="opacity-0 transform scale-90"
+                                x-transition:enter-end="opacity-100 transform scale-100">
+
+                                <div class="mt-3 mb-5">Scale standard batch to produce a yield of:</div>
+
+                                <div class="flex flex-col justify-start">
+
+                                    <!-- START YIELD BY WEIGHT -->
+                        
+                                    <div class="flex md:flex-row flex-col justify-start md:items-end md:mb-6 mb-12">
+
+                                        <div class="mr-3 md:pr-0 pr-3 md:pb-8 pb-0">
+                                            <input type="radio" name="yield_choice" value="WEIGHT"/>
+                                            <span class="ml-2 md:hidden inline" style="position: relative; top: 0.1em;">{{data.yields.yield_noun|default:""}} by weight</span>
+                                        </div>
+
+                                        <div class="flex-0 md:mr-3 mr-0 md:w-32 md:mt-0 mt-3">
+                                            {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.yield_quantity_weight xmodel="formData.yield_quantity_weight" %}
+                                        </div>
+
+                                        <div class="flex-1 md:mr-3 mr-0">
+                                            {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.yield_unit_weight %}
+                                        </div>
+
+                                        <div class="flex-0 mt-4 mr-0 self-center md:inline hidden">
+                                            {{data.yields.yield_noun|lower|default:""}} by weight
+                                        </div>
+                                    </div>
+                    
+                                    <!-- END YIELD BY WEIGHT -->
+
+                                    <!-- START YIELD BY VOLUME -->
+                                
+                                    <div class="flex md:flex-row flex-col justify-start md:items-end md:mb-6 mb-12">
+
+                                        <div class="mr-3 md:pr-0 pr-3 md:pb-8 pb-0">
+                                            <input type="radio" name="yield_choice" value="VOLUME"/>
+                                            <span class="ml-2 md:hidden inline" style="position: relative; top: 0.1em;">{{data.yields.yield_noun|default:""}} by volume</span>
+                                        </div>
+
+                                        <div class="flex-0 md:mr-3 mr-0 md:w-32 md:mt-0 mt-3">
+                                            {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.yield_quantity_volume %}
+                                        </div>
+
+                                        <div class="flex-1 md:mr-3 mr-0 md:mt-0 mt-3">
+                                            {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.yield_unit_volume %}
+                                        </div>
+
+                                        <div class="flex-0 mt-4 mr-0 self-center md:inline hidden">
+                                            {{data.yields.yield_noun|lower|default:""}} by volume
+                                        </div>
+                                    </div>
+                    
+                                    <!-- END YIELD BY VOLUME -->
+
+                                    <!-- START YIELD BY EACHES -->
+                        
+                                    <div class="flex md:flex-row flex-col justify-start md:items-end mb-6">
+
+                                        <div class="mr-3 md:pr-0 pr-3 md:pb-8 pb-0">
+                                            <input type="radio" name="yield_choice" value="EACHES"/>
+                                            <span class="ml-2 md:hidden inline" style="position: relative; top: 0.1em;">{{data.yields.note_each|lower|default:"by each"}}</span>
+                                        </div>
+
+                                        <div class="flex-0 md:mr-3 mr-0 md:w-32 md:mt-0 mt-3">
+                                            {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.yield_quantity_each %}
+                                        </div>
+
+                                        <div class="flex-1 md:mr-3 mr-0 md:mt-0 mt-3">
+                                            {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.yield_unit_each %}
+                                        </div>
+
+                                        <div class="flex-0 mt-4 mr-0 self-center md:inline hidden">
+                                            {{data.yields.note_each|lower|default:"by each"}}
+                                        </div>
+                                    </div>
+                    
+                                    <!-- END YIELD BY EACHES -->
+
+                                </div>
+
+                                </div>
+                                <!-- END TAB - DESIRED YIELD -->
+
+                                <!-- START TAB - BY MULTIPLE -->
+                                <div class="p-4 space-y-2" x-show="active === 1"
+                                x-transition:enter="transition ease-out duration-300"
+                                x-transition:enter-start="opacity-0 transform scale-90"
+                                x-transition:enter-end="opacity-100 transform scale-100">
+
+                                <div>
+                                    {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.multiple_scaling_factor %}
+                                </div>
+
+                                </div>
+                                <!-- END TAB - BY MULTIPLE -->
+
+                                <!-- START TAB - LIMITING MATERIAL -->
+                                <div class="p-4 space-y-2" x-show="active === 2"
+                                x-transition:enter="transition ease-out duration-300"
+                                x-transition:enter-start="opacity-0 transform scale-90"
+                                x-transition:enter-end="opacity-100 transform scale-100">
+
+                                <div class="flex flex-col justify-start">
+                        
+                                    <div class="flex md:flex-row flex-col justify-start md:items-end md:mb-6 mb-12">
+                                        <div id="limit-line-block" class="flex-1 md:mr-3 mr-0 md:mt-0 mt-3">
+                                            {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.limit_line %}
+                                        </div>
+                                    </div>
+
+                                    <div class="md:mb-6 mb-12 text-lg">limited to</div>
+
+                                    <div class="flex md:flex-row flex-col justify-start md:items-end md:mb-6 mb-12">
+
+                                        <div class="md:mr-3 mr-0 md:mt-0 mt-3">
+                                            {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.limit_quantity %}
+                                        </div>
+    
+                                        <div class="flex-1 md:mr-3 mr-0 md:mt-0 mt-3">
+                                            {% include "generic/generic_form_field.html" with form=scaling_form field=scaling_form.limit_unit %}
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                </div>
+                                <!-- END TAB - LIMITING MATERIAL -->
+
+                            </div>
+        
+                            <!-- END CONTENT -->
+
+                        </div>
+                    </div>
+                    <!-- END MODAL BODY -->
+
+                    <!-- START FORM BUTTON -->
+                    <div class="mt-5 sm:mt-6">
+                        <button type="submit" name="scaling_form" class="inline-flex justify-center px-4 py-2 text-white bg-steel-500 rounded hover:bg-steel-700">
+                            Scale
+                        </button>
+                        <button @click="modalscalingopen=false" class="inline-flex justify-center px-4 py-2 text-white bg-steel-500 rounded hover:bg-steel-700">
+                            Close
+                        </button>
+                    </div>
+                    <!-- END FORM BUTTON -->
+
+                </form>
+            </div>
+        </div>
+
+    </template>
+
+
+
+
+    <!-- END MODAL - SCALING -->

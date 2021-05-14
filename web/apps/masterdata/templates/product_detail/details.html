@@ -1,0 +1,62 @@
+    <!-- START DETAIL -->
+    <div class="card">
+
+        <div class="card-heading mb-0">Details</div>
+
+        <!-- START ACTIONS -->
+        <div class="actions">
+            <a class="action-link" href="{% url options.url_edit pk=data.id %}">
+                <i class="material-icons text-sm" style="position: relative; top: 0.2em;">edit</i>
+                <span class="action-text">Edit</span>
+            </a>
+        </div>
+        <!-- END ACTIONS -->
+
+
+        <!-- START CATEGORY -->
+        <div class="card-item">
+            <div class="card-label">Category</div>
+            <div class="card-text">
+                {{data.get_category_display}}
+            </div>
+        </div>
+        <!-- END CATEGORY -->
+
+        <!-- START PRODUCTION TYPE -->
+        <div class="card-item">
+            <div class="card-label">Production Type</div>
+            <div class="card-text">
+                {{data.get_production_type_display}}
+            </div>
+        </div>
+        <!-- END PRODUCTION TYPE -->
+
+        <!-- START DEFAULT UNIT -->
+        <div class="card-item">
+            <div class="card-label">Default unit of measurement</div>
+            <div class="card-text">
+                {{data.get_unit_type_display}}
+            </div>
+        </div>
+        <!-- END DEFAULT UNIT -->
+
+        <!-- START AVAILABILITY -->
+        <div class="card-item">
+            <div class="card-label">Available to Order</div>
+            <div class="card-text">
+                {{data.is_available|yesno:"Available, Unavailable" }}
+            </div>
+        </div>
+        <!-- END AVAILABILITY -->
+
+        <!-- START NOTES -->
+        <div class="card-item">
+            <div class="card-label">Notes</div>
+            <div class="card-text">
+                {{data.notes|default:"No notes entered"}}
+            </div>
+        </div>
+        <!-- END NOTES -->
+
+    </div>
+    <!-- END DETAILS -->

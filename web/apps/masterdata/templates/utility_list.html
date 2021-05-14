@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block body_block %}
+{% load static humanize %}
+
+<title>Utilities</title>
+
+<!-- START VISIBLE CONTENT -->
+<div>
+
+    <!-- START TOP PANEL -->
+    <div>
+        <div class="flex flex-col justify-start">
+            <div class="font-bold">
+                <a href="{% url 'masterdata:utility_list' %}" class="link" >
+                    Utilities
+                </a>
+            </div>
+            <div class="page-heading">
+                MasterData
+            </div>
+
+            <!-- START ACTIONS -->
+            <div class="md:mb-5 mb-3 text-xs">
+            </div>
+            <!-- END ACTIONS -->
+        </div>
+    </div>
+    <!-- END TOP PANEL -->
+
+    <!-- START EXPORT -->
+    <div class="card">
+
+        <!-- START EXPORT FORM -->
+        <div class="md:mb-5 mb-3">
+     
+            <div>
+                <a href="{% url 'masterdata:utility_offline_edit' %}" class="text-steel-500 hover:underline">Import/Export Models</a>
+            </div>
+            <div>
+                <a href="{% url 'masterdata:utility_bulk_edit_characteristics' %}" class="text-steel-500 hover:underline">Update Unevaluated Allergens</a>
+            </div>
+
+        </div>
+        <!-- END EXPORT FORM -->
+
+    </div>
+    <!-- END EXPORT -->
+
+</div>
+<!-- END VISIBLE CONTENT -->
+
+
+
+{% endblock %}

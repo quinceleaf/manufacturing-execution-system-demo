@@ -1,0 +1,41 @@
+{% block body_block %}
+{% load static %}
+
+<!-- START – CHANGE TEAM (DROPDOWN) -->
+<div>
+
+    <!-- START – DISPLAY -->
+    <div  class="cursor-pointer">
+        <a type="button" class="link text-sm" aria-haspopup="true" aria-expanded="true" @click="dropdownteamopen=true" >
+            {{data.team.name}}
+            <i class="material-icons text-sm" style="position: relative; top: 0.1em;">expand_more</i>
+        </a>
+    </div>
+    <!-- END – DISPLAY -->
+
+    <!-- START – CHOICES -->
+    <div x-show="!dropdownteamopen" @click.away="dropdownteamopen=false" class="ml-10 p-2 text-sm space-y-2 absolute z-50 w-40 bg-white border shadow-md">  
+
+        <div class="text-xs text-gray-500">Change to . . .</div>
+        
+        {% for team in teams  %}
+
+            <div>
+            {% if team == data.team %}
+                <span class="text-gray-300">{{team.name}}</span>
+            {% else %}
+                <a href="{% url 'masterdata:billofmaterials_change_team' pk=data.id team=team.slug %}" class="link">
+                    {{team.name}}
+                </a>
+            {% endif %}
+            </div>
+
+        {% endfor %}
+
+    </div>
+    <!-- END – CHOICES -->
+
+</div>
+<!-- END – CHANGE TEAM (DROPDOWN) -->
+
+{% endblock %}

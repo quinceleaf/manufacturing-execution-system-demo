@@ -1,6 +1,8 @@
+# ––– DJANGO IMPORTS
 from django.contrib import admin
 from django.urls import path
 
+# ––– THIRD-PARTY iMPORTS
 from admin_auto_filters.filters import AutocompleteFilter
 from django_fsm_log.admin import StateLogInline
 from import_export.admin import ImportExportModelAdmin
@@ -8,6 +10,7 @@ from import_export.admin import ImportExportModelAdmin
 from treebeard.admin import TreeAdmin
 from treebeard.forms import movenodeform_factory
 
+# ––– APPLICATION IMPORTS
 from apps.common.admin import (
     admin_link,
     BaseAdminConfig,
@@ -15,15 +18,11 @@ from apps.common.admin import (
     ItemAsMaterialFilter,
     ItemAsProductFilter,
     ManufacturerFilter,
-    MaterialFilter,
-    ProductFilter,
+    # MaterialFilter,
+    # ProductFilter,
 )
-from apps.common.views import MaterialFilterSearchView, ProductFilterSearchView
 from apps.common.models import ExportCsvMixin
 from apps.masterdata import forms, models
-from apps.production import models as production_models
-from apps.purchasing import models as purchasing_models
-from apps.purchasing.admin import VendorCatalogInline
 
 
 """
@@ -87,12 +86,28 @@ class BillOfMaterialsYieldInline(admin.TabularInline):
     extra = 0
 
 
+class MaterialFilter(AutocompleteFilter):
+    title = "Material"
+    field_name = "material"
+
+
+class ProductFilter(AutocompleteFilter):
+    title = "Product"
+    field_name = "product"
+
+
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 # BILL OF MATERIALS
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
 
-class BillOfMaterialsAdminConfig(BaseAdminConfig):
+@admin.register(models.BillOfMaterials)
+class BillOfMaterialsAdmin(BaseAdminConfig):
+    def product_status(self, obj):
+        return obj.product.status.get_state_display()
+
+    product_status.short_description = "Status"
+
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "product":
             kwargs["queryset"] = models.Product.objects.all()
@@ -105,7 +120,6 @@ class BillOfMaterialsAdminConfig(BaseAdminConfig):
             {
                 "fields": (
                     "product",
-                    "state",
                     "version",
                 )
             },
@@ -122,18 +136,18 @@ class BillOfMaterialsAdminConfig(BaseAdminConfig):
         BillOfMaterialsYieldInline,
         StateLogInline,
     )
-    list_display = ("__str__", "version", "state")
-    list_filter = ("state", "team", ProductFilter)
+    list_display = (
+        "__str__",
+        "version",
+        "product_status",
+    )
+    list_filter = ("product__status__state", "team", ProductFilter)
     readonly_fields = ["version"] + BaseAdminConfig.readonly_fields
     search_fields = ["product__name"]
 
 
-@admin.register(models.BillOfMaterials)
-class BillOfMaterialsAdmin(BillOfMaterialsAdminConfig):
-    pass
-
-
-class BillOfMaterialsCharacteristicsAdminConfig(BaseAdminConfig):
+@admin.register(models.BillOfMaterialsCharacteristics)
+class BillOfMaterialsCharacteristicsAdmin(BaseAdminConfig):
     autocomplete_fields = ["bill_of_materials"]
     fieldsets = (
         (
@@ -179,13 +193,8 @@ class BillOfMaterialsCharacteristicsAdminConfig(BaseAdminConfig):
     )
 
 
-@admin.register(models.BillOfMaterialsCharacteristics)
-class BillOfMaterialsCharacteristicsAdmin(BillOfMaterialsCharacteristicsAdminConfig):
-    pass
-
-
-class BillOfMaterialsCostAdminConfig(ImmutableAdminConfig):
-
+@admin.register(models.BillOfMaterialsCost)
+class BillOfMaterialsCostAdmin(ImmutableAdminConfig):
     fieldsets = (
         (
             None,
@@ -230,12 +239,8 @@ class BillOfMaterialsCostAdminConfig(ImmutableAdminConfig):
     )
 
 
-@admin.register(models.BillOfMaterialsCost)
-class BillOfMaterialsCostAdmin(BillOfMaterialsCostAdminConfig):
-    pass
-
-
-class BillOfMaterialsLineAdminConfig(BaseAdminConfig):
+@admin.register(models.BillOfMaterialsLine)
+class BillOfMaterialsLineAdmin(BaseAdminConfig):
     def bom_state(self, obj):
         return obj.bill_of_materials.get_state_display()
 
@@ -288,12 +293,8 @@ class BillOfMaterialsLineAdminConfig(BaseAdminConfig):
     )
 
 
-@admin.register(models.BillOfMaterialsLine)
-class BillOfMaterialsLineAdmin(BillOfMaterialsLineAdminConfig):
-    pass
-
-
-class BillOfMaterialsNoteAdminConfig(BaseAdminConfig):
+@admin.register(models.BillOfMaterialsNote)
+class BillOfMaterialsNoteAdmin(BaseAdminConfig):
     def bom_state(self, obj):
         return obj.bill_of_materials.get_state_display()
 
@@ -324,12 +325,8 @@ class BillOfMaterialsNoteAdminConfig(BaseAdminConfig):
     )
 
 
-@admin.register(models.BillOfMaterialsNote)
-class BillOfMaterialsNoteAdmin(BillOfMaterialsNoteAdminConfig):
-    pass
-
-
-class BillOfMaterialsProcedureAdminConfig(BaseAdminConfig):
+@admin.register(models.BillOfMaterialsProcedure)
+class BillOfMaterialsProcedureAdmin(BaseAdminConfig):
     def bom_state(self, obj):
         return obj.bill_of_materials.get_state_display()
 
@@ -365,12 +362,8 @@ class BillOfMaterialsProcedureAdminConfig(BaseAdminConfig):
     )
 
 
-@admin.register(models.BillOfMaterialsProcedure)
-class BillOfMaterialsProcedureAdmin(BillOfMaterialsProcedureAdminConfig):
-    pass
-
-
-class BillOfMaterialsResourceAdminConfig(BaseAdminConfig):
+@admin.register(models.BillOfMaterialsResource)
+class BillOfMaterialsResourceAdmin(BaseAdminConfig):
     def bom_state(self, obj):
         return obj.bill_of_materials.get_state_display()
 
@@ -417,18 +410,14 @@ class BillOfMaterialsResourceAdminConfig(BaseAdminConfig):
     )
 
 
-@admin.register(models.BillOfMaterialsResource)
-class BillOfMaterialsResourceAdmin(BillOfMaterialsResourceAdminConfig):
-    pass
-
-
 @admin.register(models.BillOfMaterialsTree)
 class BillOfMaterialsTreeAdmin(TreeAdmin):
     form = movenodeform_factory(models.BillOfMaterialsTree)
     list_filter = ("depth",)
 
 
-class BillOfMaterialsYieldAdminConfig(BaseAdminConfig):
+@admin.register(models.BillOfMaterialsYield)
+class BillOfMaterialsYieldAdmin(BaseAdminConfig):
     def bom_state(self, obj):
         return obj.bill_of_materials.get_state_display()
 
@@ -493,17 +482,13 @@ class BillOfMaterialsYieldAdminConfig(BaseAdminConfig):
     )
 
 
-@admin.register(models.BillOfMaterialsYield)
-class BillOfMaterialsYieldAdmin(BillOfMaterialsYieldAdminConfig):
-    pass
-
-
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 # ITEM
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
 
-class ItemAdminConfig(BaseAdminConfig, ExportCsvMixin):
+@admin.register(models.Item)
+class ItemAdmin(BaseAdminConfig, ExportCsvMixin):
     fieldsets = (
         (
             None,
@@ -524,7 +509,9 @@ class ItemAdminConfig(BaseAdminConfig, ExportCsvMixin):
             {
                 "fields": (
                     "version",
+                    "version_key",
                     "preserve",
+                    "archive",
                 )
             },
         ),
@@ -534,14 +521,11 @@ class ItemAdminConfig(BaseAdminConfig, ExportCsvMixin):
     list_filter = ("category",)
     readonly_fields = [
         "preserve",
+        "archive",
         "version",
+        "version_key",
     ] + BaseAdminConfig.readonly_fields
     search_fields = ["name"]
-
-
-@admin.register(models.Item)
-class ItemAdmin(ItemAdminConfig):
-    pass
 
 
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -549,11 +533,12 @@ class ItemAdmin(ItemAdminConfig):
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
 
-class MaterialAdminConfig(BaseAdminConfig, ExportCsvMixin):
-    def input_count(self, obj):
-        return obj.inputs.count()
+@admin.register(models.Material)
+class MaterialAdmin(BaseAdminConfig):
+    # def input_count(self, obj):
+    #     return obj.inputs.count()
 
-    input_count.short_description = "Input Count"
+    # input_count.short_description = "Input Count"
 
     def formfield_for_choice_field(self, db_field, request, **kwargs):
         """
@@ -569,7 +554,7 @@ class MaterialAdminConfig(BaseAdminConfig, ExportCsvMixin):
                 ("PACKAGING", "Packaging/Disposable"),
                 ("OTHER", "Other/Misc"),
             ]
-        return super(MaterialAdminConfig, self).formfield_for_choice_field(
+        return super(MaterialAdmin, self).formfield_for_choice_field(
             db_field, request, **kwargs
         )
 
@@ -582,7 +567,7 @@ class MaterialAdminConfig(BaseAdminConfig, ExportCsvMixin):
                     "name",
                     "category",
                     "unit_type",
-                    "state",
+                    "is_available",
                 )
             },
         ),
@@ -595,24 +580,26 @@ class MaterialAdminConfig(BaseAdminConfig, ExportCsvMixin):
             {
                 "fields": (
                     "version",
+                    "version_key",
                     "preserve",
+                    "archive",
                 )
             },
         ),
     ) + BaseAdminConfig.readonly_fieldsets
-    list_display = ("__str__", "input_count")
-    list_display_links = ("__str__", "input_count")
-    list_filter = ("category",)
+    list_display = ("__str__",)  # "input_count")
+    list_display_links = ("__str__",)  # "input_count")
+    list_filter = (
+        "category",
+        "is_available",
+    )
     readonly_fields = [
         "preserve",
+        "archive",
         "version",
+        "version_key",
     ] + BaseAdminConfig.readonly_fields
     search_fields = ["name"]
-
-
-@admin.register(models.Material)
-class MaterialAdmin(MaterialAdminConfig):
-    pass
 
 
 @admin.register(models.MaterialCharacteristics)
@@ -662,47 +649,13 @@ class MaterialCharacteristicsAdmin(BaseAdminConfig):
     search_fields = ("item__name",)
 
 
-@admin.register(models.MaterialConversion)
-class MaterialConversionAdmin(BaseAdminConfig):
-    autocomplete_fields = ["item"]
-    fieldsets = (
-        (
-            None,
-            {
-                "fields": (
-                    "item",
-                    "version",
-                )
-            },
-        ),
-        (
-            "Allowed Units",
-            {
-                "fields": (
-                    "allowed_weight",
-                    "allowed_volume",
-                    "allowed_each",
-                )
-            },
-        ),
-        (
-            "Conversion Ratios",
-            {
-                "fields": (
-                    "ratio_weight_to_volume",
-                    "ratio_weight_to_each",
-                    "ratio_volume_to_each",
-                )
-            },
-        ),
-    ) + BaseAdminConfig.readonly_fieldsets
-    list_filter = (ItemAsMaterialFilter,)
-    readonly_fields = ["version"] + BaseAdminConfig.readonly_fields
-
-
 @admin.register(models.MaterialCost)
 class MaterialCostAdmin(ImmutableAdminConfig):
     list_filter = (ItemAsMaterialFilter,)
+    search_fields = (
+        "__str__",
+        "item__name",
+    )
 
 
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -710,7 +663,13 @@ class MaterialCostAdmin(ImmutableAdminConfig):
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
 
-class ProductAdminConfig(BaseAdminConfig, ExportCsvMixin):
+@admin.register(models.Product)
+class ProductAdmin(BaseAdminConfig):
+    def status(self, obj):
+        return obj.status.get_state_display()
+
+    status.short_description = "Status"
+
     def formfield_for_choice_field(self, db_field, request, **kwargs):
         """
         Choices for proxy model Product (the differentiating criteria between
@@ -721,11 +680,10 @@ class ProductAdminConfig(BaseAdminConfig, ExportCsvMixin):
                 ("WIP", "Work-in-Progress"),
                 ("FINISHED", "Finished Product"),
             ]
-        return super(ProductAdminConfig, self).formfield_for_choice_field(
+        return super(BaseAdminConfig, self).formfield_for_choice_field(
             db_field, request, **kwargs
         )
 
-    actions = ["export_as_csv"]
     fieldsets = (
         (
             None,
@@ -733,14 +691,11 @@ class ProductAdminConfig(BaseAdminConfig, ExportCsvMixin):
                 "fields": (
                     "name",
                     "category",
+                    "production_type",
                     "unit_type",
-                    "state",
+                    "is_available",
                 )
             },
-        ),
-        (
-            "Tags",
-            {"fields": ("tags",)},
         ),
         (
             "Notes",
@@ -751,40 +706,28 @@ class ProductAdminConfig(BaseAdminConfig, ExportCsvMixin):
             {
                 "fields": (
                     "version",
+                    "version_key",
                     "preserve",
+                    "archive",
                 )
             },
         ),
     ) + BaseAdminConfig.readonly_fieldsets
-    list_display = ("__str__",)
+    list_display = ("__str__", "status")
     list_display_links = ("__str__",)
     list_filter = (
         "category",
-        "state",
+        "production_type",
+        "is_available",
+        "status__state",
     )
     readonly_fields = [
         "preserve",
+        "archive",
         "version",
+        "version_key",
     ] + BaseAdminConfig.readonly_fields
     search_fields = ["name"]
-
-    def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            path(
-                "product_filter/",
-                self.admin_site.admin_view(
-                    ProductFilterSearchView.as_view(model_admin=self)
-                ),
-                name="product_filter",
-            ),
-        ]
-        return custom_urls + urls
-
-
-@admin.register(models.Product)
-class ProductAdmin(ProductAdminConfig):
-    pass
 
 
 @admin.register(models.ProductCharacteristics)
@@ -848,47 +791,28 @@ class ProductCharacteristicsAdmin(BaseAdminConfig):
     search_fields = ("item__name",)
 
 
-@admin.register(models.ProductConversion)
-class ProductConversionAdmin(BaseAdminConfig):
-    autocomplete_fields = ["item"]
+@admin.register(models.ProductCost)
+class ProductCostAdmin(ImmutableAdminConfig):
+    list_filter = (ItemAsProductFilter,)
+
+
+@admin.register(models.ProductStatus)
+class ProductStatusAdmin(BaseAdminConfig):
+    autocomplete_fields = ["product"]
     fieldsets = (
         (
             None,
             {
                 "fields": (
-                    "item",
+                    "product",
                     "version",
-                )
-            },
-        ),
-        (
-            "Allowed Units",
-            {
-                "fields": (
-                    "allowed_weight",
-                    "allowed_volume",
-                    "allowed_each",
-                )
-            },
-        ),
-        (
-            "Conversion Ratios",
-            {
-                "fields": (
-                    "ratio_weight_to_volume",
-                    "ratio_weight_to_each",
-                    "ratio_volume_to_each",
+                    "state",
                 )
             },
         ),
     ) + BaseAdminConfig.readonly_fieldsets
-    list_filter = (ItemAsProductFilter,)
+    list_filter = (ProductFilter,)
     readonly_fields = ["version"] + BaseAdminConfig.readonly_fields
-
-
-@admin.register(models.ProductCost)
-class ProductCostAdmin(ImmutableAdminConfig):
-    list_filter = (ItemAsProductFilter,)
 
 
 # –––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -926,7 +850,7 @@ class SettingsAdmin(BaseAdminConfig):
     autocomplete_fields = ["default_unit_weight", "default_unit_volume"]
     fieldsets = (
         (
-            None,
+            "Units",
             {
                 "fields": (
                     "default_unit_weight",
@@ -935,6 +859,10 @@ class SettingsAdmin(BaseAdminConfig):
                     "default_unit_system_volume",
                 )
             },
+        ),
+        (
+            "Management Levers",
+            {"fields": ("default_target_product_margin",)},
         ),
     ) + BaseAdminConfig.readonly_fieldsets
     form = forms.SettingsForm

@@ -1,0 +1,51 @@
+{% load widget_tweaks %}
+
+  {% if field.field.widget.input_type == 'text' %}
+    <div>
+      <div class="rounded-md">
+        {% render_field field class="input-field" placeholder=field.name.title %}
+      </div>
+    </div>
+
+  {% elif field.field.widget.input_type == 'number' %}
+    <div>
+      <div class="rounded-md">
+        {% render_field field class="input-field" placeholder=field.name.title %}
+      </div>
+    </div>
+
+  {% elif field.field.widget.input_type == 'select' %}
+    <div>
+      <div class="rounded-md">
+        {% render_field field class="django-select2" placeholder=field.name.title %}
+      </div>
+    </div>
+
+  {% elif field.field.widget.input_type == 'checkbox' %}
+    <div>
+      <div class="">
+          {% render_field form.field class="focus:ring-steel-300 focus:border-steel-300 border-gray-300" %}
+          <label for="{{field.id}}" class="mb-2 ml-1 text-gray-500">
+              {{ field.label_tag }}
+          </label>
+      </div>
+    </div>
+
+  {% else %}
+    <div>
+      <div class="rounded-md">
+        {% render_field field class="input-field" placeholder=field.name.title %}
+      </div>
+    </div>
+
+  {% endif %}
+
+
+
+
+
+
+
+
+  
+  

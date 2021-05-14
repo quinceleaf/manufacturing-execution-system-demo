@@ -1,0 +1,29 @@
+    <!-- START TOP PANEL -->
+    <div class="flex flex-col justify-start">
+        <div class="font-bold">
+            <a href="{% url options.url_list %}" class="link">
+                {{options.plural}}
+            </a>
+        </div>
+        <div class="page-heading">
+            {{data.name}}
+        </div>
+
+        <!-- START ACTIONS -->
+        <div class="actions">
+            {% if options.url_edit %}
+            <a class="action-link" href="{% url options.url_edit pk=data.id %}">
+                <i class="material-icons text-sm" style="position: relative; top: 0.2em;">edit</i>
+                <span class="action-text">Edit</span>
+            </a>
+            {% endif %}
+            {% if options.delete_permitted %}
+            <a class="action-link" href="#" x-data @click="$dispatch('modal-confirm-delete', { open: true, objectid:'{{data.id}}', objecttype: '{{options.model}}', displaytype: '{{options.model}}', })">
+                <i class="material-icons text-sm" style="position: relative; top: 0.2em;">delete</i>
+                <span class="action-text">Delete</span>
+            </a>
+            {% endif %}
+        </div>
+        <!-- END ACTIONS -->
+    </div>
+    <!-- END TOP PANEL -->

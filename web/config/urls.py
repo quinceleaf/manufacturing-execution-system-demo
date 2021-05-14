@@ -11,11 +11,12 @@ import debug_toolbar
 urlpatterns = [
     # path("admin/doc/", include("django.contrib.admindocs.urls")),
     path("admin/", admin.site.urls),
-    path("auth/", include("django.contrib.auth.urls")),
     path("api/v1/", include("apps.api.urls", namespace="api")),
-    # path("select2/", include("django_select2.urls")),
+    path("select2/", include("django_select2.urls")),
     #
-    path("users/", include("apps.users.urls", namespace="users")),
+    path("", include("django.contrib.auth.urls")),
+    path("", include("apps.masterdata.urls", namespace="masterdata")),
+    path("", include("apps.users.urls", namespace="users")),
     path("", include("apps.common.urls", namespace="common")),
     #
     path("__debug__/", include(debug_toolbar.urls)),

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block body_block %}
+{% load static humanize %}
+
+<title>Bulk Editing</title>
+
+<link type="text/css" rel="stylesheet" href="{% static 'css/select2.min.css' %}"/>
+<link type="text/css" rel="stylesheet" href="{% static 'css/select2-custom.css' %}"/>
+
+<!-- START VISIBLE CONTENT -->
+<div x-data="{}">
+
+    <!-- START TOP PANEL -->
+    <div>
+        <div class="flex flex-col justify-start">
+            <div class="font-bold">
+                <a href="{% url 'masterdata:utility_list' %}" class="link" >
+                    Utilities
+                </a>
+            </div>
+            <div class="page-heading">
+                Bulk Editing
+            </div>
+
+            
+            <!-- START ACTIONS -->
+            <div class="actions">
+            </div>
+            <!-- END ACTIONS -->
+        </div>
+    </div>
+    <!-- END TOP PANEL -->
+
+    <!-- START EXPORT -->
+    <div class="card">
+
+        <div class="card-section-block">
+            <div class="card-heading">Export</div>
+
+            <!-- START ACTIONS -->
+            <div class="md:mb-5 mb-3">
+            </div>
+            <!-- END ACTIONS -->
+        </div>
+
+        <!-- START EXPORT FORM -->
+        <div class="card-item">
+            <form name="export_form" method="post" novalidate>
+                {% csrf_token %}
+
+                <!-- START MODEL -->
+                <div class="md:mr-3 mr-0 w-100">
+                    {% include 'generic/generic_form_field.html' with form=export_form field=export_form.export_model %}
+                </div>
+                <!-- END MODEL -->
+
+                <!-- START FORMAT -->
+                <div class="md:mr-3 mr-0 w-100">
+                    {% include 'generic/generic_form_field.html' with form=export_form field=export_form.export_format %}
+                </div>
+                <!-- END FORMAT -->
+
+                <!-- START BUTTONS -->
+                <div class="md:mr-3 mr-0 w-100">
+                     <button type="submit" name="export_form" class="group relative justify-center mr-3 py-2 px-4 text-sm text-white rounded-md border border-transparent bg-steel-600 hover:bg-blur-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-steel-300">
+                     Export
+                     </button>
+                </div>
+                <!-- END BUTTONS -->
+
+            </form>
+        </div>
+        <!-- END EXPORT FORM -->
+
+    </div>
+    <!-- END EXPORT -->
+
+    <!-- START IMPORT -->
+    <div class="card">
+
+        <div class="card-section-block">
+            <div class="card-heading">Import</div>
+
+            <!-- START ACTIONS -->
+            <div class="md:mb-5 mb-3">
+            </div>
+            <!-- END ACTIONS -->
+        </div>
+
+        <!-- START IMPORT FORM -->
+        <div class="card-text">
+            <form name="import_form" method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+
+                <!-- START MODEL -->
+                <div class="md:mr-3 mr-0 w-100">
+                    {% include 'generic/generic_form_field.html' with form=import_form field=import_form.import_model %}
+                </div>
+                <!-- END MODEL -->
+
+                <!-- START FORMAT -->
+                <div class="md:mr-3 mr-0 w-100">
+                    {% include 'generic/generic_form_field.html' with form=import_form field=import_form.import_format %}
+                </div>
+                <!-- END FORMAT -->
+
+                <!-- START FILE -->
+                <div class="md:mr-3 mr-0 w-100" x-data="fileUploadForm()">
+                    <input @change="updateFileSelected" type="file" hidden="hidden" name="import_file" accept=".xlsx, .xls, .csv" id="hidden-import">
+
+                    <div class="flex md:flex-row flex-col md:items-center items-start">
+                        <button @click="clickHiddenInput" type="button" class="group relative justify-center mr-3 py-2 px-4 text-sm text-white rounded-md border border-transparent bg-steel-600 hover:bg-blur-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-steel-300">
+                            Select File to Upload
+                        </button>
+        
+                        <div class="flex flex-col">
+                            <div class="md:mt-0 mt-2"><span x-text="fileSelected" class="text-xs text-gray-500"></span></div>
+                            <div><a x-show="isFileSelected" @click="clearSelection" href="#" class="text-xs text-steel-500 hover:underline">Clear selection</a></div>
+                        </div>
+                    </div>
+                    
+
+                </div>
+                <!-- END FILE -->
+
+                <!-- START BUTTONS -->
+                <div class="mt-5 md:mr-3 mr-0 w-100">
+                     <button type="submit" name="import_form" class="button-basic">
+                     Import
+                     </button>
+                </div>
+                <!-- END BUTTONS -->
+            </form>
+        </div>
+        <!-- END IMPORT FORM -->
+
+    </div>
+    <!-- END IMPORT -->
+
+</div>
+<!-- END VISIBLE CONTENT -->
+
+{% include 'components/modal_confirm_delete.html' %}
+
+<script type="text/javascript" src="{% static 'js/jquery-3.5.1.min.js' %}" ></script> 
+<script type="text/javascript" src="{% static 'js/select2.min.js' %}" ></script>
+<script type="text/javascript" src="{% static 'django_select2/django_select2.js' %}" ></script> 
+
+<script type="text/javascript">
+
+  function fileUploadForm() {
+      return {
+          fileSelected: "No file selected",
+          isFileSelected: false,
+          clickHiddenInput() {
+              let hiddenInput = document.getElementById('hidden-import');
+              hiddenInput.click();
+          },
+          updateFileSelected() {
+              let hiddenInput = document.getElementById('hidden-import');
+              this.fileSelected = hiddenInput.value;
+              this.isFileSelected = true;
+          },
+          clearSelection() {
+              let hiddenInput = document.getElementById('hidden-import');
+              hiddenInput.value = "";
+              this.fileSelected = "No file selected";
+              this.isFileSelected = false;
+          }
+      }
+  }
+
+</script>
+
+{% endblock %}

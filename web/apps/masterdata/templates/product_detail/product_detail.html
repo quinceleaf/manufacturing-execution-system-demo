@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block body_block %}
+{% load static humanize %}
+{% load editable has_group %}
+
+<title>{{data.name}}</title>
+
+<!-- START VISIBLE CONTENT -->
+<div x-data="{ modalcosttableopen : false, modalconfirmdeleteopen: false, modalconfirmarchiveopen: false, }">
+
+{% include 'product_detail/top_panel.html' %}
+
+{% include 'product_detail/details.html' %}
+{% include 'product_detail/bill_of_materials.html' %}
+{% include 'product_detail/characteristics.html' %}
+{% include 'product_detail/costing.html' %}
+{% include 'product_detail/inventory.html' %}
+{% include 'product_detail/sales_history.html' %}
+
+{% include 'components/modal_confirm_archive.html' %}
+{% include 'components/modal_confirm_delete.html' %}
+
+</div>
+<!-- END VISIBLE CONTENT -->
+
+
+{% endblock %}

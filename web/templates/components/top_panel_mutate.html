@@ -1,0 +1,24 @@
+    <!-- START TOP PANEL -->
+    <div class="mt-5">
+        <div class="flex flex-col">
+            <div class="font-bold">
+                {% if object %}
+                    <a href="{% url options.url_list %}" class="link">{{options.plural}}</a>
+                    <i class="material-icons text-sm text-steel-500" style="position: relative; top: 0.2em;">double_arrow</i>
+                    <a href="{% url options.url_detail pk=object.id %}" class="link">
+                {% else %}
+                    <a href="{% url options.url_list %}" class="link">
+                {% endif %}
+                    {% if object %} {{object}} {% else %} {{options.plural}} {% endif %}
+                </a>
+            </div>
+            <div class="page-heading">
+                {% if object %}
+                    Edit {{options.model}}
+                {% else %}
+                    Add {{options.model}}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- END TOP PANEL -->

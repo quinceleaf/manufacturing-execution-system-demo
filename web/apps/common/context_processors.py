@@ -7,7 +7,12 @@ Menu links for header
 
 def app_header_links(requests):
 
-    links = []
+    links = [
+        {"route": "apps.masterdata:masterdata_index", "label": "Master Data"},
+        {"route": "apps.masterdata:masterdata_index", "label": "Placeholder"},
+        {"route": "apps.masterdata:masterdata_index", "label": "Placeholder"},
+        {"route": "apps.masterdata:masterdata_index", "label": "Placeholder"},
+    ]
     return {"app_header_links": links}
 
 
