@@ -1,20 +1,20 @@
 # Pull official base image
 FROM python:3.8-slim-buster
 
-# create directory for app user
+# Create directory for app user
 RUN mkdir -p /home/app
 
-# create app user
+# Create app user
 RUN addgroup --system app && useradd -g app app
 
-# create appropriate directories
+# Create appropriate directories
 ENV APP_HOME=/home/app/web
 RUN mkdir $APP_HOME
 RUN mkdir $APP_HOME/staticfiles
 RUN mkdir $APP_HOME/mediafiles
 RUN mkdir $APP_HOME/poetry
 
-# set work directory
+# Set work directory
 WORKDIR $APP_HOME
 
 # Set environment variables
@@ -26,10 +26,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     POETRY_NO_INTERACTION=1 \
     ENVIRONMENT=development
 
-# Install dependencies - psycopg2
+# Install psycopg2 and weasyprint dependencies
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends git python3-dev libpq-dev && \
+    apt-get install -y git python3-dev libpq-dev python3-cffi libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info && \
     apt-get clean
 
 # Install dependencies - poetry
@@ -42,14 +42,14 @@ COPY poetry.lock pyproject.toml ./
 # Install other dependencies
 RUN poetry install
 
-# copy project
+# Copy app files
 COPY . .
 RUN chmod +x ./entrypoint.sh
 
-# chown all the files to the app user
+# Chown all the files to the app user
 RUN chown -R app:app .
 
-# change to the app user
+# Change to the app user
 USER app
 
 # Run entrypoint.sh
